@@ -10,12 +10,32 @@ import Link from "next/link";
 import { GetAllCategories } from "@/api/Courses/Categories/allCategories";
 import { GetAllCourses } from "@/api/Courses/allCourses";
 import { Loading } from "@/app/_components/Loading";
+import {jwtDecode} from "jwt-decode"; // Importe jwt-decode
 
 const COURSES_PER_PAGE = 6;
 
-// Dados mockados do usuário (substitua pela sua lógica real de autenticação)
-const userType = null; // Pode ser 'admin', 'student' ou null
-const purchasedCourses = []; // IDs dos cursos comprados pelo aluno
+// Função para obter o userType do token no localStorage
+const getUserType = () => {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('access');
+    if (token) {
+      try {
+        const decoded = jwtDecode(token);
+        return decoded.userClaims?.userType || null;
+      } catch (error) {
+        console.error('Erro ao decodificar o token:', error);
+        return null;
+      }
+    }
+  }
+  return null;
+};
+
+// Função para obter os IDs dos cursos comprados (se necessário)
+const getPurchasedCourses = () => {
+  // Implemente conforme sua lógica de obtenção de cursos comprados
+  return [];
+};
 
 export default function CourseSearchPage() {
   // Estado para os filtros
@@ -26,14 +46,23 @@ export default function CourseSearchPage() {
   const [courseTypes, setCourseTypes] = useState(["online", "presential"]);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Estados para os dados do usuário
+  const [userType, setUserType] = useState(null);
+  const [purchasedCourses, setPurchasedCourses] = useState([]);
+
   // Estados para os dados da API
   const [categories, setCategories] = useState([]);
   const [courses, setCourses] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Buscar categorias e cursos ao montar o componente
+  // Buscar dados do usuário e da API ao montar o componente
   useEffect(() => {
+    // Obter userType do token
+    setUserType(getUserType());
+    // Obter cursos comprados (se necessário)
+    setPurchasedCourses(getPurchasedCourses());
+
     const fetchData = async () => {
       try {
         setIsLoading(true);
@@ -61,7 +90,6 @@ export default function CourseSearchPage() {
 
     fetchData();
   }, []);
-
   // Funções de manipulação
   function handleSearch(e) {
     e.preventDefault();
@@ -156,10 +184,10 @@ export default function CourseSearchPage() {
         {/* Cabeçalho */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold bg-gradient-to-br from-blue-900 to-blue-700 bg-clip-text text-transparent mb-2">
-            {userType === "admin" ? "Gerenciar Cursos" : "Nossos Cursos"}
+            {userType === "ADMIN" ? "Gerenciar Cursos" : "Nossos Cursos"}
           </h1>
           <p className="text-gray-600 mb-6">
-            {userType === "admin"
+            {userType === "ADMIN"
               ? "Gerencie todos os cursos da plataforma"
               : "Encontre o curso perfeito para impulsionar sua carreira"}
           </p>
@@ -231,7 +259,7 @@ export default function CourseSearchPage() {
 
             {/* Lista de cursos */}
             <div className="w-full lg:w-3/4">
-              {userType === "admin" && (
+              {userType === "ADMIN" && (
                 <div className="mb-6 flex justify-end">
                   <Link
                     href="/admin/cursos/novo"

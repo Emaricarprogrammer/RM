@@ -7,13 +7,20 @@ import { jwtDecode } from "jwt-decode";
 import { useEffect, useState } from "react";
 import { MyProfile } from "@/api/Users/Students/profile";
 import { Loading } from "@/app/_components/Loading";
+import { useUserAuth } from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
+
 export function StudentData() {
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const router = useRouter();
+  
+  // Hook de autenticação
+  const isAuthLoading = useUserAuth(["student"]);
 
+  // Constantes para as estatísticas
   const ICON_SIZE = 18;
-
   const stats = [
     {
       id: 1,
@@ -36,52 +43,58 @@ export function StudentData() {
   ];
 
   useEffect(() => {
-    const fetchStudentData = async () => {
-      try {
-        setLoading(true);
-        
-        // 1. Obter o token do localStorage
-        const token = localStorage.getItem('access');
-        
-        if (!token) {
-          throw new Error("Token não encontrado");
+    if (!isAuthLoading) { // Só carrega os dados se a autenticação estiver ok
+      const fetchStudentData = async () => {
+        try {
+          setLoading(true);
+          const token = localStorage.getItem('access');
+          
+          if (!token)
+          {
+            router.push('/login');
+            return;
+          }
+
+          const decodedToken = jwtDecode(token);
+          const id_student = decodedToken.userClaims.id_student;
+
+          if (!id_student)
+          {
+            router.push('/login');
+            return;
+          }
+
+          const result = await MyProfile(id_student, token);
+
+          if (result.success) {
+            setStudent({
+              profileImage: result.data?.profile_image || "",
+              name: result.data?.full_name || "",
+              fullName: result.data?.full_name || "",
+              phone: result.data?.contact || "",
+              email: result.data?.email || "",
+            });
+          } else {
+            throw new Error(result.message || "Erro ao carregar perfil");
+          }
+        } catch (err) {
+          setError(err.message || "Falha ao carregar dados do perfil");
+          console.error("Erro ao carregar perfil:", err);
+        } finally {
+          setLoading(false);
         }
+      };
 
-        const decodedToken = jwtDecode(token);
-        const id_student = decodedToken.userClaims.id_student;
+      fetchStudentData();
+    }
+  }, [isAuthLoading]);
 
-        if (!id_student)
-        {
-          throw new Error("ID do estudante não encontrado no token");
-        }
-
-        // 3. Fazer a chamada à API
-        const result = await MyProfile(id_student, token);
-
-        if (result.success) {
-          setStudent({
-            profileImage: result.data?.profile_image || "",
-            name: result.data?.full_name || "",
-            fullName: result.data?.full_name || "",
-            phone: result.data?.contact || "",
-            email: result.data?.email || "",
-          });
-        } else {
-          throw new Error(result.message || "Erro ao carregar perfil");
-        }
-      } catch (err) {
-        setError(err.message || "Falha ao carregar dados do perfil");
-        console.error("Erro ao carregar perfil:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStudentData();
-  }, []);
+  if (isAuthLoading) {
+    return <Loading message="Estamos preparando tudo..." />;
+  }
 
   if (loading) {
-    return <Loading message="Olá, estamos preparando o seu perfil..."/>; // Use seu componente Loading personalizado
+    return <Loading message="Só mais um pouquinho, estamos montando o seu perfil..." />;
   }
 
   if (error) {

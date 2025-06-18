@@ -53,7 +53,7 @@ export default function CourseCard({ course, userType, hasPurchased }) {
           </div>
 
           {/* Botões condicionais baseados no tipo de usuário */}
-          {userType === "admin" ? (
+          {userType === "ADMIN" ? (
             <div className="flex flex-col gap-4">
               <Link
                 href={`/admin/detalhes-do-curso?id=${course.id_course}`}
@@ -76,22 +76,20 @@ export default function CourseCard({ course, userType, hasPurchased }) {
                 </button>
               </div>
             </div>
-          ) : userType === "student" ? (
-            hasPurchased ? (
-              <Link
-                href={`/assistir-curso?id=${course.id_course}`}
-                className="w-full block text-center bg-gradient-to-br from-blue-800 to-blue-600 hover:from-blue-700 hover:to-blue-500 text-white px-4 py-2 rounded-md transition-all"
-              >
-                Assistir Curso
-              </Link>
-            ) : (
-              <Link
-                href={`/checkout?id=${course.id_course}`}
-                className="w-full block text-center bg-gradient-to-br from-blue-900 to-blue-700 hover:from-blue-800 hover:to-blue-600 text-white px-4 py-2 rounded-md transition-all"
-              >
-                Comprar
-              </Link>
-            )
+          ) : userType === "student" && hasPurchased ? (
+            <Link
+              href={`/assistir-curso?id=${course.id_course}`}
+              className="w-full block text-center bg-gradient-to-br from-blue-800 to-blue-600 hover:from-blue-700 hover:to-blue-500 text-white px-4 py-2 rounded-md transition-all"
+            >
+              Assistir Curso
+            </Link>
+          ) : userType == "student" ? (
+            <Link
+              href={`/checkout?id=${course.id_course}`}
+              className="w-full block text-center bg-gradient-to-br from-blue-900 to-blue-700 hover:from-blue-800 hover:to-blue-600 text-white px-4 py-2 rounded-md transition-all"
+            >
+              Comprar
+            </Link>
           ) : (
             <Link
               href={`/criar-conta?redirect=/detalhes-do-curso/${course.id_course}`}

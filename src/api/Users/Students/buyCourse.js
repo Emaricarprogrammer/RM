@@ -1,9 +1,8 @@
 import { api } from "@/api/api";
 
-export async function BuyCourse(status, id_student, id_course) {
+export async function BuyCourse(id_student, id_course) {
     try {
         const response = await api.post("/courses/enrolls/create/",{
-            status,
             id_student,
             id_course,
         },

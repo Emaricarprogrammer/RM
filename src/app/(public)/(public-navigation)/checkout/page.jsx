@@ -1,41 +1,110 @@
 "use client";
 
 import { ArrowLeft, Clock, Banknote, Loader2, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Footer } from "@/app/_components/Footer";
+import {jwtDecode} from "jwt-decode";
+import { BuyCourse } from "@/api/Users/Students/buyCourse";
+import { getCourse } from "@/api/Courses/coursesDetails";
 
 export default function CheckoutPage() {
+  const searchParams = useSearchParams();
+  const id_course = searchParams.get("id");
+  
   const [isLoading, setIsLoading] = useState(false);
-  const [step, setStep] = useState(1); // Adicionei o estado do passo novamente
+  const [step, setStep] = useState(1);
+  const [course, setCourse] = useState(null);
+  const [loadingCourse, setLoadingCourse] = useState(true);
+  const [idStudent, setIdStudent] = useState(null);
 
-  const course = {
-    title: "Desenvolvimento Web com React e Next.js",
-    price: 29999.99,
-    duration: "9 horas",
-    image_url:
-      "https://images.unsplash.com/photo-1633356122544-f134324a6cee?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
-  };
+  useEffect(() => {
+    // Decodificar o token para obter o id_student
+    const token = localStorage.getItem("access");
+    if (token) {
+      try {
+        const decoded = jwtDecode(token);
+        setIdStudent(decoded.id_student);
+      } catch (error) {
+        console.error("Erro ao decodificar o token:", error);
+      }
+    }
 
-  const handleConfirm = () => {
+    // Carregar dados do curso
+    if (id_course) {
+      const fetchCourseData = async () => {
+        try {
+          const { course: courseData } = await getCourse(id_course);
+          if (courseData) {
+            setCourse(courseData);
+          }
+        } catch (error) {
+          console.error("Error fetching course:", error);
+        } finally {
+          setLoadingCourse(false);
+        }
+      };
+      
+      fetchCourseData();
+    }
+  }, [id_course]);
+
+  const handleConfirm = async () => {
+    if (!idStudent) {
+      console.error("ID do estudante não disponível");
+      return;
+    }
+
     setIsLoading(true);
-    // Simular processamento
-    setTimeout(() => {
+    try {
+      const response = await BuyCourse(idStudent, id_course);
+      
+      if (response.success) {
+        setStep(2);
+      } else {
+        console.error("Erro na compra:", response.message);
+      }
+    } catch (error) {
+      console.error("Erro ao confirmar compra:", error);
+    } finally {
       setIsLoading(false);
-      setStep(2);
-    }, 1500);
+    }
   };
 
   const handleCancel = () => {
-    // Lógica para cancelar o pedido
     setStep(1);
   };
+
+  if (loadingCourse) {
+    return (
+      <div className="bg-gray-50 min-h-screen flex items-center justify-center">
+        <Loader2 className="animate-spin h-12 w-12 text-primary" />
+      </div>
+    );
+  }
+
+  if (!course) {
+    return (
+      <div className="bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-800 mb-4">Curso não encontrado</h1>
+          <Link
+            href="/"
+            className="text-primary hover:text-primary-hover underline"
+          >
+            Voltar para a página inicial
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="container mx-auto px-4 py-8">
         <Link
-          href="/detalhes-do-curso?id=1"
+          href={`/detalhes-do-curso?id=${id_course}`}
           className="flex items-center text-primary hover:text-primary-hover mb-6 transition-colors"
         >
           <ArrowLeft className="w-5 h-5 mr-2" />
@@ -102,7 +171,7 @@ export default function CheckoutPage() {
 
                   <button
                     onClick={handleConfirm}
-                    disabled={isLoading}
+                    disabled={isLoading || !idStudent}
                     className="w-full bg-blue-900 hover:bg-blue-800 text-white font-medium py-3 px-4 rounded-md transition-colors flex items-center justify-center"
                   >
                     {isLoading ? (
