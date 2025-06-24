@@ -43,7 +43,7 @@ export function StudentData() {
   ];
 
   useEffect(() => {
-    if (!isAuthLoading) { // Só carrega os dados se a autenticação estiver ok
+    if (!isAuthLoading) {
       const fetchStudentData = async () => {
         try {
           setLoading(true);

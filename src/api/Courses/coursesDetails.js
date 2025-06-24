@@ -1,18 +1,24 @@
+"use client";
 import { useEffect, useState } from "react";
 import { api } from "../api";
 
-const getCourse = (id) => {
+const useCourse = (id) => {
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      setLoading(false);
+      return;
+    }
 
     const fetchCourse = async () => {
       try {
         setLoading(true);
+        setError(null);
         const { data } = await api.get(`courses/${id}`);
-
+        console.log("Dados do curso:", data);
         if (data.success && data.response) {
           const res = data.response;
 
@@ -30,34 +36,35 @@ const getCourse = (id) => {
             course_type: res.course_type,
             total_watching: res.total_watching || 0,
 
-            // Categoria (mantida como string para compatibilidade)
+            // Categoria
             category: res.category,
             id_category: res.id_category,
 
-            // Vídeos (convertendo para array se for número)
-            course_videos:
-              typeof res.course_videos === "number"
-                ? []
-                : res.course_videos || [],
+            // Vídeos
+            course_videos: Array.isArray(res.course_videos) 
+              ? res.course_videos 
+              : [],
 
-            // Dados do instrutor (unificando os campos)
+            // Dados do instrutor
             instructors_datas: {
-              id_instructor: res.instructors_datas.id_instructor,
+              id_instructor: res.instructors_datas?.id_instructor,
               full_name:
-                res.instructors_datas.user?.full_name ||
-                res.instructors_datas.full_name ||
+                res.instructors_datas?.user?.full_name ||
+                res.instructors_datas?.full_name ||
                 "Instrutor não disponível",
-              biography: res.instructors_datas.biography,
-              profile_image: res.instructors_datas.profile_image,
-              user: res.instructors_datas.user,
+              biography: res.instructors_datas?.biography,
+              profile_image: res.instructors_datas?.profile_image,
+              user: res.instructors_datas?.user,
             },
           };
 
           setCourse(transformedCourse);
+        } else {
+          setError("Curso não encontrado");
         }
-        return []
-      } catch (error) {
-        console.error("Erro ao buscar curso:", error);
+      } catch (err) {
+        console.error("Erro ao buscar curso:", err);
+        setError(err.message || "Erro ao carregar o curso");
       } finally {
         setLoading(false);
       }
@@ -66,7 +73,7 @@ const getCourse = (id) => {
     fetchCourse();
   }, [id]);
 
-  return { course, loading };
+  return { course, loading, error };
 };
 
-export {getCourse}
+export { useCourse };

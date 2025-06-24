@@ -8,7 +8,7 @@ async function GetAllCategories()
     } catch (error)
     {
         console.log(error)
-        throw new Error("Ocorreu um erro")
+    return { success: false, message: error.response?.data?.message || "Erro desconhecido ao deletar curso." };
     }
 }
 

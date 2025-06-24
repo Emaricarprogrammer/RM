@@ -5,6 +5,7 @@ import { useRef, useEffect, useState } from "react";
 import Link from "next/link";
 import { MyInstructors } from "@/api/Users/Students/myInstructors";
 import { jwtDecode } from "jwt-decode";
+import { useRouter } from "next/navigation";
 
 export function InstructorsCarousel() {
   // Constants
@@ -13,6 +14,7 @@ export function InstructorsCarousel() {
   const DESKTOP_BREAKPOINT = 768;
   const SCROLL_BUTTON_OFFSET_MOBILE = 3;
   const SCROLL_BUTTON_OFFSET_DESKTOP = 6;
+  const router = useRouter();
 
   const carouselRef = useRef(null);
   const [isDesktop, setIsDesktop] = useState(false);
@@ -26,7 +28,8 @@ export function InstructorsCarousel() {
        const token = localStorage.getItem('access');
         
         if (!token) {
-          throw new Error("Token não encontrado");
+          router.push('/login');
+          return;
         }
 
         // 2. Decodificar o token para obter o id_student
@@ -34,7 +37,8 @@ export function InstructorsCarousel() {
         const id_student = decodedToken.userClaims.id_student;
 
         if (!id_student) {
-          throw new Error("ID do estudante não encontrado no token");
+          router.push('/login');
+          return;
         }
 
         setLoading(true);

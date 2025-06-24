@@ -1,26 +1,65 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Edit2, Trash2, Plus, Search, X } from "lucide-react";
 import { Footer } from "@/app/_components/Footer";
 import Link from "next/link";
+import { 
+  GetAllCategories, 
+  CreateCategory,
+  UpdateCategory,
+  DeleteCategory 
+} from "@/api/Courses/Categories/Categories";
+import {toast, Toaster} from "react-hot-toast";
+import { jwtDecode } from "jwt-decode";
 
 export default function CategoriesAdminPage() {
-  // Estados para os modais
+  // Estados
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [currentCategory, setCurrentCategory] = useState(null);
-  const [modalType, setModalType] = useState(""); // 'edit' ou 'delete'
+  const [modalType, setModalType] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [newCategory, setNewCategory] = useState({ name: "" });
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [accessToken, setAccessToken] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Mock de categorias
-  const [categories, setCategories] = useState([
-    { id: 1, name: "Programação", courseCount: 24 },
-    { id: 2, name: "Design", courseCount: 18 },
-    { id: 3, name: "Marketing Digital", courseCount: 15 },
-    { id: 4, name: "Negócios", courseCount: 12 },
-  ]);
+  // Obter token de acesso
+  useEffect(() => {
+    const token = localStorage.getItem('access');
+    if (token) {
+      setAccessToken(token);
+    }
+  }, []);
+
+  // Carregar categorias
+  const fetchCategories = async () => {
+    try {
+      setLoading(true);
+      const response = await GetAllCategories();
+      
+      if (response.success) {
+        setCategories(response.response.map(category => ({
+          id: category.id_category_course,
+          name: category.name_category_courses,
+          courseCount: category.courses_associeted?.length || 0
+        })));
+      } else {
+        toast.error(response.message || "Erro ao carregar categorias");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao carregar categorias");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   // Filtrar categorias
   const filteredCategories = categories.filter((category) =>
@@ -47,37 +86,98 @@ export default function CategoriesAdminPage() {
     setIsModalOpen(true);
   };
 
-  // Salvar edição
-  const handleSave = (e) => {
-    e.preventDefault();
-    const updatedCategories = categories.map((cat) =>
-      cat.id === currentCategory.id ? currentCategory : cat
-    );
-    setCategories(updatedCategories);
-    setIsModalOpen(false);
-  };
-
   // Adicionar nova categoria
-  const handleAdd = (e) => {
+  const handleAdd = async (e) => {
     e.preventDefault();
-    const newId = Math.max(...categories.map((c) => c.id)) + 1;
-    setCategories([
-      ...categories,
-      { ...newCategory, id: newId, courseCount: 0 },
-    ]);
-    setIsAddModalOpen(false);
+    if (!newCategory.name.trim()) {
+      toast.error("O nome da categoria não pode estar vazio");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await CreateCategory(newCategory.name, accessToken);
+      
+      if (response.success) {
+        await fetchCategories();
+        setIsAddModalOpen(false);
+        toast.success("Categoria adicionada com sucesso!");
+      } else {
+        toast.error(response.message || "Erro ao adicionar categoria");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao adicionar categoria");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  // Confirmar exclusão
-  const handleDelete = () => {
-    setCategories(categories.filter((cat) => cat.id !== currentCategory.id));
-    setIsModalOpen(false);
+  // Editar categoria
+const handleSave = async (e) => {
+    e.preventDefault();
+    if (!currentCategory?.name.trim()) {
+        toast.error("O nome da categoria não pode estar vazio");
+        return;
+    }
+
+    setIsSubmitting(true);
+    try {
+        const response = await UpdateCategory(
+            currentCategory.id,
+            currentCategory.name,
+            accessToken
+        );
+        
+        console.log("Resposta da API:", response); // Para debug
+        
+        if (response.success) {
+            // Atualiza apenas a categoria modificada sem recarregar tudo
+            setCategories(categories.map(cat => 
+                cat.id === currentCategory.id 
+                    ? { ...cat, name: currentCategory.name } 
+                    : cat
+            ));
+            setIsModalOpen(false);
+            toast.success("Categoria atualizada com sucesso!");
+        } else {
+            toast.error(response.message || "Erro ao atualizar categoria");
+        }
+    } catch (error) {
+        console.error("Erro no handleSave:", error);
+        toast.error("Erro ao atualizar categoria");
+    } finally {
+        setIsSubmitting(false);
+    }
+};
+
+  // Excluir categoria
+  const handleDelete = async () => {
+    setIsSubmitting(true);
+    try {
+      const response = await DeleteCategory(currentCategory.id, accessToken);
+      
+      if (response.success) {
+        await fetchCategories();
+        setIsModalOpen(false);
+        toast.success("Categoria excluída com sucesso!");
+      } else {
+        toast.error(response.message || "Erro ao excluir categoria");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao excluir categoria");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="bg-gray-50 min-h-screen flex flex-col">
       <div className="container mx-auto px-4 py-8 flex-grow">
         {/* Cabeçalho */}
+        <Toaster position="top-center" reverseOrder={false} className="flex flex-col text-center gap-1 w-full"/>
+      
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
             <h1 className="text-3xl font-bold text-blue-900 mb-2">
@@ -116,73 +216,80 @@ export default function CategoriesAdminPage() {
 
         {/* Tabela de Categorias */}
         <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gradient-to-br from-blue-900 to-blue-700">
-                <tr className="text-sm">
-                  <th className="px-6 py-3 text-left font-medium text-white uppercase tracking-wider">
-                    Nome
-                  </th>
-                  <th className="py-3 text-left font-medium text-white uppercase tracking-wider">
-                    Nº de Cursos
-                  </th>
-                  <th className="px-24 py-3 text-left font-medium text-white uppercase tracking-wider">
-                    Acesso
-                  </th>
-                  <th className="px-6 py-3 text-right font-medium text-white uppercase tracking-wider">
-                    Ações
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredCategories.length > 0 ? (
-                  filteredCategories.map((category) => (
-                    <tr key={category.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                        {category.name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                        {category.courseCount}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Link
-                          href={`/cursos?category=${category.name
-                            .toLowerCase()
-                            .replace(/\s+/g, "-")}`}
-                          className="inline-flex items-center text-blue-800 hover:text-blue-600 font-medium hover:underline"
-                        >
-                          Ver cursos dessa categoria
-                        </Link>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => openEditModal(category)}
-                          className="text-blue-800 hover:text-blue-600 mr-4"
-                        >
-                          <Edit2 className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => openDeleteModal(category)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
+          {loading ? (
+            <div className="p-12 text-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+              <p className="mt-2 text-gray-600">Carregando categorias...</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gradient-to-br from-blue-900 to-blue-700">
+                  <tr className="text-sm">
+                    <th className="px-6 py-3 text-left font-medium text-white uppercase tracking-wider">
+                      Nome
+                    </th>
+                    <th className="py-3 text-left font-medium text-white uppercase tracking-wider">
+                      Nº de Cursos
+                    </th>
+                    <th className="px-24 py-3 text-left font-medium text-white uppercase tracking-wider">
+                      Acesso
+                    </th>
+                    <th className="px-6 py-3 text-right font-medium text-white uppercase tracking-wider">
+                      Ações
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredCategories.length > 0 ? (
+                    filteredCategories.map((category) => (
+                      <tr key={category.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                          {category.name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-gray-500">
+                          {category.courseCount}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Link
+                            href={`/cursos?category=${category.name
+                              .toLowerCase()
+                              .replace(/\s+/g, "-")}`}
+                            className="inline-flex items-center text-blue-800 hover:text-blue-600 font-medium hover:underline"
+                          >
+                            Ver cursos dessa categoria
+                          </Link>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button
+                            onClick={() => openEditModal(category)}
+                            className="text-blue-800 hover:text-blue-600 mr-4"
+                          >
+                            <Edit2 className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => openDeleteModal(category)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan="4"
+                        className="px-6 py-12 text-center text-gray-500 bg-gray-50"
+                      >
+                        {searchTerm ? "Nenhuma categoria encontrada" : "Nenhuma categoria cadastrada"}
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan="4"
-                      className="px-6 py-12 text-center text-gray-500 bg-gray-50"
-                    >
-                      Nenhuma categoria encontrada
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
 
@@ -192,8 +299,9 @@ export default function CategoriesAdminPage() {
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
             <div className="p-6 relative">
               <button
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => !isSubmitting && setIsModalOpen(false)}
                 className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+                disabled={isSubmitting}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -206,7 +314,7 @@ export default function CategoriesAdminPage() {
                   <form onSubmit={handleSave}>
                     <div className="mb-4">
                       <label className="block text-gray-700 text-sm font-medium mb-2">
-                        Nome da Categoria
+                        Nome da Categoria*
                       </label>
                       <input
                         type="text"
@@ -218,6 +326,7 @@ export default function CategoriesAdminPage() {
                             name: e.target.value,
                           })
                         }
+                        required
                       />
                     </div>
                     <div className="flex justify-end gap-3 mt-6">
@@ -225,14 +334,23 @@ export default function CategoriesAdminPage() {
                         type="button"
                         onClick={() => setIsModalOpen(false)}
                         className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                        disabled={isSubmitting}
                       >
                         Cancelar
                       </button>
                       <button
                         type="submit"
-                        className="px-4 py-2 bg-gradient-to-br from-blue-900 to-blue-700 text-white rounded-md hover:opacity-90"
+                        className="px-4 py-2 bg-gradient-to-br from-blue-900 to-blue-700 text-white rounded-md hover:opacity-90 flex items-center justify-center min-w-32"
+                        disabled={isSubmitting || !currentCategory?.name.trim()}
                       >
-                        Salvar Alterações
+                        {isSubmitting ? (
+                          <>
+                            <span className="animate-spin inline-block mr-2">↻</span>
+                            Salvando...
+                          </>
+                        ) : (
+                          "Salvar Alterações"
+                        )}
                       </button>
                     </div>
                   </form>
@@ -250,14 +368,23 @@ export default function CategoriesAdminPage() {
                     <button
                       onClick={() => setIsModalOpen(false)}
                       className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                      disabled={isSubmitting}
                     >
                       Cancelar
                     </button>
                     <button
                       onClick={handleDelete}
-                      className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                      className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center justify-center min-w-32"
+                      disabled={isSubmitting}
                     >
-                      Confirmar Exclusão
+                      {isSubmitting ? (
+                        <>
+                          <span className="animate-spin inline-block mr-2">↻</span>
+                          Excluindo...
+                        </>
+                      ) : (
+                        "Confirmar Exclusão"
+                      )}
                     </button>
                   </div>
                 </>
@@ -273,8 +400,9 @@ export default function CategoriesAdminPage() {
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
             <div className="p-6 relative">
               <button
-                onClick={() => setIsAddModalOpen(false)}
+                onClick={() => !isSubmitting && setIsAddModalOpen(false)}
                 className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+                disabled={isSubmitting}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -285,7 +413,7 @@ export default function CategoriesAdminPage() {
               <form onSubmit={handleAdd}>
                 <div className="mb-4">
                   <label className="block text-gray-700 text-sm font-medium mb-2">
-                    Nome da Categoria
+                    Nome da Categoria*
                   </label>
                   <input
                     type="text"
@@ -298,6 +426,7 @@ export default function CategoriesAdminPage() {
                       })
                     }
                     required
+                    placeholder="Digite o nome da categoria"
                   />
                 </div>
                 <div className="flex justify-end gap-3 mt-6">
@@ -305,14 +434,23 @@ export default function CategoriesAdminPage() {
                     type="button"
                     onClick={() => setIsAddModalOpen(false)}
                     className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                    disabled={isSubmitting}
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-gradient-to-br from-blue-900 to-blue-700 text-white rounded-md hover:opacity-90"
+                    className="px-4 py-2 bg-gradient-to-br from-blue-900 to-blue-700 text-white rounded-md hover:opacity-90 flex items-center justify-center min-w-32"
+                    disabled={isSubmitting || !newCategory.name.trim()}
                   >
-                    Adicionar Categoria
+                    {isSubmitting ? (
+                      <>
+                        <span className="animate-spin inline-block mr-2">↻</span>
+                        Adicionando...
+                      </>
+                    ) : (
+                      "Adicionar Categoria"
+                    )}
                   </button>
                 </div>
               </form>

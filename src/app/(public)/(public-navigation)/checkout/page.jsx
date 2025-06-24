@@ -5,68 +5,79 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Footer } from "@/app/_components/Footer";
-import {jwtDecode} from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 import { BuyCourse } from "@/api/Users/Students/buyCourse";
-import { getCourse } from "@/api/Courses/coursesDetails";
+import { NotFoundPage } from "@/app/_components/Notfound";
+import { useCourse } from "@/api/Courses/coursesDetails";
+import { useRouter } from "next/navigation";
+import { Loading } from "@/app/_components/Loading";
+import toast from "react-hot-toast";
 
 export default function CheckoutPage() {
   const searchParams = useSearchParams();
   const id_course = searchParams.get("id");
+  const router = useRouter();
+  
+  const { course, loading: loadingCourse, error: courseError } = useCourse(id_course);
   
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(1);
-  const [course, setCourse] = useState(null);
-  const [loadingCourse, setLoadingCourse] = useState(true);
   const [idStudent, setIdStudent] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Decodificar o token para obter o id_student
     const token = localStorage.getItem("access");
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        setIdStudent(decoded.id_student);
-      } catch (error) {
-        console.error("Erro ao decodificar o token:", error);
-      }
+    if (!token) {
+      toast.error("Por favor, faça login para continuar");
+      router.push('/login');
+      return;
     }
 
-    // Carregar dados do curso
-    if (id_course) {
-      const fetchCourseData = async () => {
-        try {
-          const { course: courseData } = await getCourse(id_course);
-          if (courseData) {
-            setCourse(courseData);
-          }
-        } catch (error) {
-          console.error("Error fetching course:", error);
-        } finally {
-          setLoadingCourse(false);
-        }
-      };
-      
-      fetchCourseData();
+    try {
+      const decoded = jwtDecode(token);
+      if (!decoded.userClaims.id_student) {
+        throw new Error("Token inválido");
+      }
+      setIdStudent(decoded.userClaims.id_student);
+    } catch (error) {
+      console.error("Erro ao decodificar o token:", error);
+      toast.error("Sessão inválida. Faça login novamente.");
+      router.push('/login');
     }
-  }, [id_course]);
+  }, [router]);
 
   const handleConfirm = async () => {
     if (!idStudent) {
-      console.error("ID do estudante não disponível");
+      toast.error("Por favor, faça login para continuar");
+      router.push('/login');
+      return;
+    }
+
+    if (!id_course) {
+      toast.error("Curso inválido");
       return;
     }
 
     setIsLoading(true);
+    setError(null);
+    
     try {
       const response = await BuyCourse(idStudent, id_course);
+      console.log("Resposta da compra:", response);
       
       if (response.success) {
         setStep(2);
+        toast.success("Compra realizada com sucesso!");
+        // Limpa o carrinho se necessário
+        localStorage.removeItem('cart');
       } else {
-        console.error("Erro na compra:", response.message);
+        setError(response.message || "Erro ao processar a compra");
+        toast.error(response.message || "Erro ao processar a compra");
       }
     } catch (error) {
       console.error("Erro ao confirmar compra:", error);
+      setError("Ocorreu um erro ao processar sua compra. Tente novamente.");
+      toast.error("Ocorreu um erro ao processar sua compra");
     } finally {
       setIsLoading(false);
     }
@@ -74,30 +85,15 @@ export default function CheckoutPage() {
 
   const handleCancel = () => {
     setStep(1);
+    toast("Compra cancelada", { icon: "❌" });
   };
 
   if (loadingCourse) {
-    return (
-      <div className="bg-gray-50 min-h-screen flex items-center justify-center">
-        <Loader2 className="animate-spin h-12 w-12 text-primary" />
-      </div>
-    );
+    return <Loading message="Carregando os detalhes..." />;
   }
 
   if (!course) {
-    return (
-      <div className="bg-gray-50 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">Curso não encontrado</h1>
-          <Link
-            href="/"
-            className="text-primary hover:text-primary-hover underline"
-          >
-            Voltar para a página inicial
-          </Link>
-        </div>
-      </div>
-    );
+    return <NotFoundPage message="Desculpe, mas não conseguimos encontrar este curso!" />;
   }
 
   return (
@@ -169,20 +165,34 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  <button
-                    onClick={handleConfirm}
-                    disabled={isLoading || !idStudent}
-                    className="w-full bg-blue-900 hover:bg-blue-800 text-white font-medium py-3 px-4 rounded-md transition-colors flex items-center justify-center"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />
-                        Processando...
-                      </>
-                    ) : (
-                      "Confirmar Compra"
+                  <div>
+                    <button
+                      onClick={handleConfirm}
+                      disabled={isLoading || !idStudent}
+                      className={`w-full bg-blue-900 hover:bg-blue-800 text-white font-medium py-3 px-4 rounded-md transition-colors flex items-center justify-center ${
+                        isLoading || !idStudent ? "opacity-70 cursor-not-allowed" : ""
+                      }`}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />
+                          Processando...
+                        </>
+                      ) : (
+                        "Confirmar Compra"
+                      )}
+                    </button>
+                    {error && (
+                      <p className="mt-2 text-sm text-red-600 text-center">
+                        {error}
+                      </p>
                     )}
-                  </button>
+                    {!idStudent && (
+                      <p className="mt-2 text-sm text-yellow-600 text-center">
+                        Você precisa estar logado para finalizar a compra
+                      </p>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-6">

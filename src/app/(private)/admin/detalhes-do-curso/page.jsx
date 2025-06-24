@@ -16,16 +16,39 @@ import {
   Edit,
   Trash2,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Footer } from "@/app/_components/Footer";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useCourse } from "@/api/Courses/coursesDetails";
+import { Loading } from "@/app/_components/Loading";
+import { NotFoundPage } from "@/app/_components/Notfound";
+import { jwtDecode } from "jwt-decode";
+import { deleteCourse } from "@/api/Courses/deleteCourse";
+import toast from "react-hot-toast";
 import { DeleteCourseModal } from "./DeleteCourseModal";
 
-export default function AdminCourseDetailPage() {
+export default function CourseDetailPage() {
   const [activeModule, setActiveModule] = useState(null);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [userType, setUserType] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const searchParams = useSearchParams();
   const router = useRouter();
+  const id_course = searchParams.get('id');
+  const { course, loading, mutate } = useCourse(id_course);
+
+  useEffect(() => {
+    const token = localStorage.getItem('access');
+    if (token) {
+      try {
+        const decodedToken = jwtDecode(token);
+        setUserType(decodedToken.userClaims?.userType?.toLowerCase());
+      } catch (error) {
+        console.error("Erro ao decodificar token:", error);
+      }
+    }
+  }, []);
 
   const toggleModule = (index) => {
     setActiveModule(activeModule === index ? null : index);
@@ -46,109 +69,71 @@ export default function AdminCourseDetailPage() {
     });
   };
 
-  const course = {
-    id: "course-123",
-    title: "Desenvolvimento Web com React e Next.js",
-    description: `
-       Aprenda a construir aplicações modernas com React e Next.js, desde os fundamentos até conceitos avançados como SSR e SSG.
-       Ao longo do curso, você vai aprender a criar componentes reutilizáveis com React, gerenciar estado com hooks, trabalhar com roteamento e renderização no Next.js, e como fazer o deploy da aplicação.
-       Para acompanhar este curso, é recomendado ter conhecimentos básicos de JavaScript, Node.js instalado e um editor de código como o VS Code.
-     `,
-    image_url:
-      "https://images.unsplash.com/photo-1633356122544-f134324a6cee?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
-    category: {
-      id: "web-dev",
-      name: "Desenvolvimento Web",
-    },
-    instructor: {
-      id: "instr-123",
-      name: "Maria Souza",
-      bio: `Engenheira de software com 8 anos de experiência em desenvolvimento front-end. Especialista em React e arquitetura de aplicações escaláveis. Já trabalhou em empresas como Netflix e Uber. Atualmente dedica-se ao ensino online, compartilhando conhecimento com milhares de alunos em toda a lusofonia. Participou de conferências internacionais como ReactConf e JSWorld.`,
-      image_url: "https://randomuser.me/api/portraits/women/44.jpg",
-    },
-    price: 29999.99,
-    total_lessons: 4,
-    duration: 540,
-    createdAt: "2023-05-10T10:00:00Z",
-    mode: "online", // ou 'presencial'
-    students: 1245,
-    modules: [
-      {
-        id: "module-1",
-        title: "Fundamentos de React",
-        description: "Conceitos básicos do React.",
-        videos: [
-          { id: "video-1", title: "Introdução ao React" },
-          { id: "video-2", title: "Componentes e Props" },
-        ],
-      },
-      {
-        id: "module-2",
-        title: "Next.js Avançado",
-        description: "Avançado em Next.js.",
-        videos: [
-          { id: "video-3", title: "Roteamento em Next" },
-          { id: "video-4", title: "SSR vs SSG" },
-        ],
-      },
-    ],
+  const handleEdit = () => {
+    router.push(`/admin/editar-curso?id=${id_course}`);
   };
 
-  const handleEditCourse = () => {
-    router.push(`/admin/editar-curso?id=${course.id}`);
+  const handleDeleteClick = () => {
+    setShowDeleteModal(true);
   };
 
-  const handleDeleteCourse = () => {
-    setIsDeleteModalOpen(true);
+  const handleDeleteConfirm = async () => {
+    try {
+      setIsDeleting(true);
+      const token = localStorage.getItem('access');
+      await deleteCourse(id_course, token);
+      toast.success("Curso eliminado com sucesso!");
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Delay para visualização do toast
+      router.push("/cursos");
+    } catch (error) {
+      console.error("Erro ao eliminar curso:", error);
+      toast.error("Ocorreu um erro ao eliminar o curso");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+    }
   };
 
-  const handleConfirmDelete = () => {
-    // Lógica para deletar o curso
-    console.log("Curso deletado:", course.id);
-    setIsDeleteModalOpen(false);
-    // Redirecionar após deletar
-    router.push("/cursos");
-  };
+  if (loading) {
+    return <Loading message="Carregando os dados do curso..." />;
+  }
+
+  if (!course) {
+    return <NotFoundPage message="Desculpe mas, não encontramos este curso!" />;
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen">
+      {/* Modal de confirmação de exclusão */}
+      <DeleteCourseModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteConfirm}
+        courseTitle={course.title}
+      />
+
       <div className="container mx-auto px-4 py-8">
-        {/* Voltar */}
-        <Link
-          href="/cursos"
-          className="flex items-center bg-gradient-to-br from-blue-900 to-blue-700 bg-clip-text text-transparent hover:from-blue-800 hover:to-blue-600 mb-6 space-x-2"
-        >
-          <ArrowLeft className="w-5 h-5 text-blue-700" />
-          <span>Voltar para todos os cursos</span>
-        </Link>
+        {/* Cabeçalho com botão de voltar */}
+        <div className="flex justify-between items-center mb-6">
+          <Link
+            href={userType === 'admin' ? "/cursos" : "/cursos"}
+            className="flex items-center bg-gradient-to-br from-blue-900 to-blue-700 bg-clip-text text-transparent hover:from-blue-800 hover:to-blue-600 space-x-2"
+          >
+            <ArrowLeft className="w-5 h-5 text-blue-700" />
+            <span>Voltar para todos os cursos</span>
+            </Link>
+        </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Conteúdo principal */}
           <div className="flex flex-col lg:w-2/3">
             {/* Imagem */}
-            <div className="bg-slate-100 rounded-lg overflow-hidden mb-6 shadow-lg relative">
+            <div className="bg-slate-100 rounded-lg overflow-hidden mb-6 shadow-lg">
               <img
                 src={course.image_url}
                 alt={course.title}
                 className="w-full h-[505px] rounded-lg object-cover"
               />
-              {/* Botões de ação */}
-              <div className="absolute top-4 right-4 flex gap-2">
-                <button
-                  onClick={handleEditCourse}
-                  className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full shadow-lg"
-                  aria-label="Editar curso"
-                >
-                  <Edit className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={handleDeleteCourse}
-                  className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-full shadow-lg"
-                  aria-label="Apagar curso"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
-              </div>
             </div>
 
             {/* Descrição */}
@@ -169,20 +154,20 @@ export default function AdminCourseDetailPage() {
               </h3>
               <div className="flex flex-col sm:flex-row gap-6">
                 <img
-                  src={course.instructor.image_url}
-                  alt={course.instructor.name}
+                  src={course.instructors_datas.profile_image}
+                  alt={course.instructors_datas.full_name}
                   className="w-24 h-24 rounded-full object-cover mx-auto md:mx-0"
                 />
                 <div>
                   <h4 className="font-semibold text-2xl sm:text-lg text-center sm:text-left -mt-2 sm:mt-0 mb-4 sm:mb-1 bg-gradient-to-br from-blue-900 to-blue-700 bg-clip-text text-transparent">
-                    {course.instructor.name}
+                    {course.instructors_datas.full_name}
                   </h4>
                   <div className="relative">
                     <p className="text-gray-600 mb-3 line-clamp-3">
-                      {course.instructor.bio}
+                      {course.instructors_datas.biography}
                     </p>
                     <Link
-                      href={`/admin/perfil-formador?id=${course.instructor.id}`}
+                      href={`/perfil-formador?id=${course.instructors_datas.id_instructor}`}
                       className="bg-gradient-to-br from-blue-900 to-blue-700 bg-clip-text text-transparent font-medium hover:from-blue-800 hover:to-blue-600"
                     >
                       Ver perfil completo
@@ -195,7 +180,7 @@ export default function AdminCourseDetailPage() {
 
           {/* Lateral direita */}
           <div className="lg:w-1/3 space-y-6">
-            {/* Card de informações - com margem ajustada */}
+            {/* Card de informações */}
             <div className="bg-gradient-to-br from-blue-800 to-blue-600 text-white rounded-lg shadow-lg -mt-6 lg:-mt-0 p-6 border border-gray-100">
               <div className="mb-4">
                 <span className="space-x-2 text-2xl font-bold">
@@ -207,31 +192,33 @@ export default function AdminCourseDetailPage() {
               <ul className="space-y-5">
                 <li className="flex items-center">
                   <Tag className="w-5 h-5 mr-3" />
-                  <span>{course.category.name}</span>
+                  <span>{course.category}</span>
                 </li>
 
                 <li className="flex items-center">
-                  {course.mode === "online" ? (
+                  {course.course_type === "ONLINE" ? (
                     <Monitor className="w-5 h-5 mr-3" />
                   ) : (
                     <MapPin className="w-5 h-5 mr-3" />
                   )}
-                  <span>{course.mode}</span>
+                  <span>{course.course_type === "ONLINE" ? "Online" : "Presencial"}</span>
                 </li>
 
                 <li className="flex items-center">
-                  {course.mode === "online" ? (
+                  {course.course_type === "ONLINE" ? (
                     <Video className="w-5 h-5 mr-3" />
                   ) : (
                     <Presentation className="w-5 h-5 mr-3" />
                   )}
                   <span>{course.total_lessons} aulas</span>
                 </li>
-
-                <li className="flex items-center">
-                  <BookOpen className="w-5 h-5 mr-3" />
-                  <span>{course.modules.length} módulos</span>
-                </li>
+                
+                {course.course_type === "ONLINE" && (
+                  <li className="flex items-center">
+                    <BookOpen className="w-5 h-5 mr-3" />
+                    <span>{`${course.modules} módulos`}</span>
+                  </li>
+                )}
 
                 <li className="flex items-center">
                   <Clock className="w-5 h-5 mr-3" />
@@ -240,41 +227,86 @@ export default function AdminCourseDetailPage() {
 
                 <li className="flex items-center">
                   <Users className="w-5 h-5 mr-3" />
-                  <span>{course.students.toLocaleString("pt-BR")} alunos</span>
+                  <span>{course.total_watching.toLocaleString("pt-BR")} alunos</span>
                 </li>
 
                 <li className="flex items-center">
                   <Calendar className="w-5 h-5 mr-3" />
                   <span>Lançado em {formatDate(course.createdAt)}</span>
                 </li>
+
+                {/* Botão de gerenciar vídeos para admin */}
+                {userType === 'admin' && course.course_type=== 'ONLINE'?
+                  <li className="pt-4 border-t border-blue-400">
+                    <button
+                      onClick={() => router.push(`/admin/videos/?id=${id_course}`)}
+                      className="flex items-center justify-center gap-2 w-full py-2 px-4 bg-blue-700 hover:bg-blue-800 rounded-md transition-colors"
+                    >
+                      <Video className="w-5 h-5" />
+                      Gerenciar Vídeos
+                    </button>
+                  </li>
+                 : ""}
               </ul>
 
-              {/* Botão para gerenciar vídeos */}
-              <Link
-                href={`/admin//videos?id=${course.id}`}
-                className="mt-6 block w-full bg-white hover:bg-gray-100 text-blue-800 font-medium py-3 px-4 rounded-md mb- transition-colors text-center"
-              >
-                Gerenciar Vídeos
-              </Link>
+              {/* Botões de ação para admin */}
+              {userType === 'admin' && (
+                <div className="mt-6 space-y-2">
+                  <button
+                    onClick={handleEdit}
+                    className="flex items-center justify-center gap-2 w-full py-2 px-4 bg-white text-blue-700 hover:bg-gray-100 rounded-md transition-colors"
+                    disabled={isDeleting}
+                  >
+                    <Edit className="w-5 h-5" />
+                    Editar Curso
+                  </button>
+                  <button
+                    onClick={handleDeleteClick}
+                    className="flex items-center justify-center gap-2 w-full py-2 px-4 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors"
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? (
+                      <span className="animate-pulse">Eliminando...</span>
+                    ) : (
+                      <>
+                        <Trash2 className="w-5 h-5" />
+                        Eliminar Curso
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* Botão de compra para estudantes */}
+              {userType === 'student' && (
+                <Link
+                  href={`/checkout?courseId=${course.title
+                    .toLowerCase()
+                    .replace(/\s+/g, "-")}`}
+                  className="mt-6 block w-full bg-white hover:bg-gray-100 text-blue-800 font-medium py-3 px-4 rounded-md transition-colors text-center"
+                >
+                  Comprar Curso
+                </Link>
+              )}
             </div>
 
             {/* Módulos */}
             <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100">
-              <h2 className="px-6 py-4 bg-gradient-to-br from-blue-900 to-blue-700 text-lg font-semibold text-white">
-                Conteúdo do Curso
-              </h2>
+              <div className="flex justify-between items-center px-6 py-4 bg-gradient-to-br from-blue-900 to-blue-700">
+                <h2 className="text-lg font-semibold text-white">
+                  Conteúdo do Curso
+                </h2>
+              </div>
 
               <div className="divide-y divide-gray-200">
-                {course.modules.map((module, index) => (
-                  <div key={module.id}>
+                {course.modules && course.modules.map((module, index) => (
+                  <div key={index}>
                     <button
                       className="w-full flex justify-between items-center px-6 py-4 text-left font-medium text-gray-700 hover:bg-blue-50"
                       onClick={() => toggleModule(index)}
-                      aria-expanded={activeModule === index}
-                      aria-controls={`module-${index}-content`}
                     >
                       <span className="font-semibold block bg-gradient-to-br from-blue-900 to-blue-700 bg-clip-text text-transparent">
-                        {module.title}
+                        Módulo {index + 1}: {module.title}
                       </span>
                       <ChevronDown
                         className={`w-5 h-5 transition-transform ${
@@ -284,11 +316,11 @@ export default function AdminCourseDetailPage() {
                     </button>
 
                     {activeModule === index && (
-                      <div id={`module-${index}-content`} className="px-6 pb-4">
+                      <div className="px-6 pb-4">
                         <ul className="space-y-2">
-                          {module.videos.map((video) => (
+                          {module.lessons && module.lessons.map((lesson, lessonIndex) => (
                             <li
-                              key={video.id}
+                              key={lessonIndex}
                               className="flex items-center justify-between py-2 px-3 rounded hover:bg-blue-50"
                             >
                               <div className="flex items-center">
@@ -296,9 +328,12 @@ export default function AdminCourseDetailPage() {
                                   <Play className="w-3 h-3 text-blue-600" />
                                 </div>
                                 <span className="text-gray-600">
-                                  {video.title}
+                                  {lesson.title}
                                 </span>
                               </div>
+                              <span className="text-sm text-gray-500">
+                                {formatDuration(lesson.duration)}
+                              </span>
                             </li>
                           ))}
                         </ul>
@@ -310,27 +345,27 @@ export default function AdminCourseDetailPage() {
             </div>
           </div>
 
-          {/* Instrutor - Visível apenas em mobile (aparece no final) */}
+          {/* Instrutor - Visível apenas em mobile */}
           <div className="lg:hidden bg-white rounded-lg shadow-lg p-6 mb-6 border border-gray-100">
             <h3 className="text-xl text-center sm:text-left font-semibold text-blue-800 mb-4">
               Sobre o formador
             </h3>
             <div className="flex flex-col sm:flex-row gap-6">
               <img
-                src={course.instructor.image_url}
-                alt={course.instructor.name}
+                src={course.instructors_datas.profile_image}
+                alt={course.instructors_datas.full_name}
                 className="w-24 h-24 rounded-full object-cover mx-auto md:mx-0"
               />
               <div>
                 <h4 className="font-semibold text-2xl sm:text-lg text-center sm:text-left -mt-2 sm:mt-0 mb-4 sm:mb-1 bg-gradient-to-br from-blue-900 to-blue-700 bg-clip-text text-transparent">
-                  {course.instructor.name}
+                  {course.instructors_datas.full_name}
                 </h4>
                 <div className="relative">
                   <p className="text-gray-600 mb-3 line-clamp-3">
-                    {course.instructor.bio}
+                    {course.instructors_datas.biography}
                   </p>
                   <Link
-                    href={`/admin/perfil-formador?id=${course.instructor.id}`}
+                    href={`/perfil-formador?id=${course.instructors_datas.id_instructor}`}
                     className="bg-gradient-to-br from-blue-900 to-blue-700 bg-clip-text text-transparent font-medium hover:from-blue-800 hover:to-blue-600"
                   >
                     Ver perfil completo
@@ -341,15 +376,6 @@ export default function AdminCourseDetailPage() {
           </div>
         </div>
       </div>
-
-      {/* Modal de confirmação para deletar curso */}
-      <DeleteCourseModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={handleConfirmDelete}
-        courseTitle={course.title}
-      />
-
       <Footer />
     </div>
   );

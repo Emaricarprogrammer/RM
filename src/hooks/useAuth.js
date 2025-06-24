@@ -22,7 +22,7 @@ function useUserAuth(allowedUsers = []) {
         // Verificação imediata para redirecionamento
         if (!usersAuth.includes(user)) {
           if (window.history.length > 2) {
-                 await new Promise(resolve => setTimeout(resolve, 10000));
+            await new Promise(resolve => setTimeout(resolve, 10000));
             router.back();
           } else {
             router.push("/");
@@ -31,7 +31,13 @@ function useUserAuth(allowedUsers = []) {
         }
 
         if (!allowedUsers.includes(user)) {
-          router.push("/");
+          if (window.history.length > 2) {
+            await new Promise(resolve => setTimeout(resolve, 10000));
+            router.back();
+          }
+          else {
+            router.push("/");
+          }
           return;
         }
 
@@ -47,7 +53,7 @@ function useUserAuth(allowedUsers = []) {
       } catch (error) {
         console.error("Auth error:", error);
         if (isMounted) {
-          router.push("/error");
+          router.push("/");
         }
       }
     }

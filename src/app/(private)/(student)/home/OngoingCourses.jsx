@@ -4,12 +4,15 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { jwtDecode } from "jwt-decode";
 import { MyCourses } from "@/api/Users/Students/myCourses";
+import { useRouter } from "next/navigation";
+
 export function OngoingCourses() {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredCourses, setFilteredCourses] = useState([]);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -17,16 +20,20 @@ export function OngoingCourses() {
         // 1. Obter o token do localStorage
         const token = localStorage.getItem('access');
         
-        if (!token) {
-          throw new Error("Token não encontrado");
+        if (!token)
+        {
+          router.push('/login');
+          return;
         }
 
         // 2. Decodificar o token para obter o id_student
         const decodedToken = jwtDecode(token);
         const id_student = decodedToken.userClaims.id_student;
 
-        if (!id_student) {
-          throw new Error("ID do estudante não encontrado no token");
+        if (!id_student)
+        {
+          router.push('/login');
+          return;
         }
 
         // 3. Buscar cursos da API
