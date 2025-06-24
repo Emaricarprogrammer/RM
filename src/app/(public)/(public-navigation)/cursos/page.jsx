@@ -262,7 +262,7 @@ export default function CourseSearchPage() {
               {userType === "ADMIN" && (
                 <div className="mb-6 flex justify-end">
                   <Link
-                    href="/admin/cursos/novo"
+                    href="/admin/adicionar-curso"
                     className="bg-gradient-to-br from-blue-900 to-blue-700 hover:from-blue-800 hover:to-blue-600 text-white px-4 py-2 rounded-md"
                   >
                     Adicionar Novo Curso

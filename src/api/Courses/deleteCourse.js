@@ -2,7 +2,7 @@ import { api } from "../api";
 
 async function deleteCourse(id_course, token) {
   try {
-    const response = await api.delete(`courses/${id_course}`, {
+    const response = await api.delete(`courses/delete/${id_course}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
