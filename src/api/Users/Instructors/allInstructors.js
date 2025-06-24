@@ -1,10 +1,10 @@
 import { api } from "@/api/api";
 
-async function AdminProfile(id_instructor)
+async function AllInstrutors()
 {
     try
     {
-        const result = await api.get(`/users/instructors/profile/${id_instructor}`)
+        const result = await api.get("/users/instructors/all/where/")
         return result.data
     } catch (error)
     {
@@ -13,4 +13,4 @@ async function AdminProfile(id_instructor)
     }
 }
 
-export {AdminProfile}
+export {AllInstrutors}

@@ -4,7 +4,7 @@ import { BookOpen, Users, Clock, ArrowLeft, Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Footer } from "@/app/_components/Footer";
-import { AdminProfile } from "@/api/Users/Instructors/AdminProfile";
+import { InstrutorProfile } from "@/api/Users/Instructors/InstructorProfile";
 import { useSearchParams } from "next/navigation";
 import { Loading } from "@/app/_components/Loading";
 import { NotFoundPage } from "@/app/_components/Notfound";
@@ -25,7 +25,7 @@ export default function InstructorProfilePage() {
     const fetchInstructorData = async () => {
       try {
         setIsLoading(true);
-        const response = await AdminProfile(id_instructor);
+        const response = await InstrutorProfile(id_instructor);
         setInstructor(response.response);
       } catch (err) {
         console.error("Error fetching instructor data:", err);
