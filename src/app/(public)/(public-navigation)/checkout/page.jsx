@@ -113,7 +113,7 @@ export default function CheckoutPage() {
       toast.error("Sessão inválida. Faça login novamente.");
       router.push('/login');
     }
-  }}, [router, checkEnrollmentStatus, isAuthLoading, token]);
+  }}, [router, checkEnrollmentStatus, isAuthLoading, accessToken]);
 
   useEffect(() => {
     let interval;

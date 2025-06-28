@@ -331,7 +331,7 @@ export default function PaymentApprovalPage() {
                     <div>
                       <p className="text-xs text-gray-500">Data</p>
                       <p className="font-medium">
-                        {formatDate(payment.paymentDate)}
+                        {payment.paymentDate}
                       </p>
                     </div>
                     <div>
@@ -424,7 +424,7 @@ export default function PaymentApprovalPage() {
                           {formatCurrency(payment.amount)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-gray-900">
-                          {formatDate(payment.paymentDate)}
+                          {payment.paymentDate}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyles.bgColor} ${statusStyles.textColor}`}>
@@ -524,7 +524,7 @@ export default function PaymentApprovalPage() {
                   <div className="space-y-2">
                     <p>
                       <span className="text-gray-600">Data:</span>{" "}
-                      {formatDate(selectedPayment.paymentDate)}
+                      {selectedPayment.paymentDate}
                     </p>
                     <p>
                       <span className="text-gray-600">Status:</span>{" "}
