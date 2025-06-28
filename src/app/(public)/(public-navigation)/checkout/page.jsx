@@ -67,7 +67,7 @@ export default function CheckoutPage() {
           if (enrollment.status === 'APPROVED') {
             setStep(3);
             toast.success("Matrícula aprovada com sucesso!");
-            if (course?.modality !== 'PRESENTIAL')
+            if (course?.course_type !== 'PRESENTIAL')
             {
               await WatchingCourse(idStudent, id_course, accessToken);
             }
@@ -555,7 +555,7 @@ export default function CheckoutPage() {
                 {step === 5 && (
                   <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <h4 className="font-medium text-blue-800 mb-2">
-                      Matrícula PRESENTIAL
+                      Matrícula presencial
                     </h4>
                     <p className="text-sm text-blue-700">
                       Nossa equipe entrará em contato para finalizar sua matrícula.
