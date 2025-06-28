@@ -2,12 +2,14 @@
 
 import { Upload, X, Loader2, ChevronDown } from "lucide-react";
 import { useCourseForm } from "@/hooks/useCourseForm";
-import {Toaster,toast} from "react-hot-toast";
+import { Toaster, toast } from "react-hot-toast";
 import { useEffect } from "react";
 import { useUserAuth } from "@/hooks/useAuth";
 import { Loading } from "@/app/_components/Loading";
+import { useRouter } from "next/navigation"; // Adicione esta importação
 
 export function CourseForm() {
+  const router = useRouter(); // Adicione esta linha
   const {
     previewImage,
     categories,
@@ -21,8 +23,8 @@ export function CourseForm() {
     errors,
     reset,
   } = useCourseForm();
-    const isAuthLoading = useUserAuth(["ADMIN"]);
-
+  
+  const isAuthLoading = useUserAuth(["ADMIN"]);
 
   // Efeito para mostrar notificações
   useEffect(() => {
@@ -37,26 +39,20 @@ export function CourseForm() {
       };
       
       if (submitStatus.success) {
-         toast.success("Curso atualizado com sucesso!");
-          setTimeout(() => {
+        toast.success("Curso atualizado com sucesso!", toastStyle);
+        setTimeout(() => {
           router.push("/cursos");
-          }, 1500);
-                
+        }, 1500);
       } else {
         toast.error(submitStatus.message, toastStyle);
       }
     }
-  }, [submitStatus]);
+  }, [submitStatus, router]); // Adicione router às dependências
 
-    useEffect(() => {
-    if (!isAuthLoading) {
-      CourseForm();
-    }
-  }, [isAuthLoading]);
+  if (isAuthLoading) {
+    return <Loading message="Academia Egaf..." />;
+  }
 
-if (isAuthLoading) {
-      return <Loading message=" Academia Egaf..." />;
-    }
   const handleReset = () => {
     reset();
     toast.success("Formulário limpo com sucesso", {
@@ -64,7 +60,6 @@ if (isAuthLoading) {
       position: "top-center",
     });
   };
-
   // Componente Select reutilizável
   const FormSelect = ({ 
     name, 
