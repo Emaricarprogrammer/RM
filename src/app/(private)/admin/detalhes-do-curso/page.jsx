@@ -27,6 +27,7 @@ import { jwtDecode } from "jwt-decode";
 import { deleteCourse } from "@/api/Courses/deleteCourse";
 import toast from "react-hot-toast";
 import { DeleteCourseModal } from "./DeleteCourseModal";
+import { useUserAuth } from "@/hooks/useAuth";
 
 export default function CourseDetailPage() {
   const [activeModule, setActiveModule] = useState(null);
@@ -37,6 +38,7 @@ export default function CourseDetailPage() {
   const router = useRouter();
   const id_course = searchParams.get('id');
   const { course, loading, mutate } = useCourse(id_course);
+  const isAuthLoading = useUserAuth(["ADMIN"])
 
   useEffect(() => {
     const token = localStorage.getItem('access');
@@ -49,6 +51,10 @@ export default function CourseDetailPage() {
       }
     }
   }, []);
+  if (isAuthLoading)
+    {
+      return <Loading message=" Academia Egaf..." />;
+    }
 
   const toggleModule = (index) => {
     setActiveModule(activeModule === index ? null : index);

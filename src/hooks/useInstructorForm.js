@@ -14,8 +14,18 @@ export function useInstructorForm() {
     handleSubmit,
     formState: { errors },
     setValue,
+    reset,
+    watch,
   } = useForm({
     resolver: zodResolver(instructorSchema),
+    defaultValues: {
+      full_name: "",
+      email: "",
+      contact: "",
+      password: "",
+      biography: "",
+      image_instructor: null,
+    },
   });
 
   const handleImageChange = (e) => {
@@ -24,16 +34,29 @@ export function useInstructorForm() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewImage(reader.result);
-        setValue("image_url", file);
       };
       reader.readAsDataURL(file);
+      
+      // Atualiza o valor do campo para o array de arquivos
+      setValue("image_instructor", e.target.files, { shouldValidate: true });
     }
   };
 
   const removeImage = () => {
     setPreviewImage(null);
-    setValue("image_url", null);
-    document.getElementById("instructor-photo").value = "";
+    setValue("image_instructor", null, { shouldValidate: true });
+    const fileInput = document.getElementById("instructor-photo");
+    if (fileInput) fileInput.value = "";
+  };
+
+  // Função para ser usada no onSubmit do formulário
+  const onSubmitHandler = async (data, onSubmit) => {
+    setIsSubmitting(true);
+    try {
+      await onSubmit(data);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return {
@@ -41,8 +64,11 @@ export function useInstructorForm() {
     handleImageChange,
     removeImage,
     isSubmitting,
-    handleSubmit,
+    handleSubmit: (onSubmit) => handleSubmit((data) => onSubmitHandler(data, onSubmit)),
     register,
     errors,
+    setValue,
+    reset,
+    watch,
   };
 }

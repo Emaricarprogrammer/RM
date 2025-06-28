@@ -2,8 +2,10 @@
 
 import { Upload, X, Loader2, ChevronDown } from "lucide-react";
 import { useCourseForm } from "@/hooks/useCourseForm";
-import toast from "react-hot-toast";
+import {Toaster,toast} from "react-hot-toast";
 import { useEffect } from "react";
+import { useUserAuth } from "@/hooks/useAuth";
+import { Loading } from "@/app/_components/Loading";
 
 export function CourseForm() {
   const {
@@ -19,6 +21,8 @@ export function CourseForm() {
     errors,
     reset,
   } = useCourseForm();
+    const isAuthLoading = useUserAuth(["ADMIN"]);
+
 
   // Efeito para mostrar notificações
   useEffect(() => {
@@ -33,13 +37,26 @@ export function CourseForm() {
       };
       
       if (submitStatus.success) {
-        toast.success(submitStatus.message, toastStyle);
+         toast.success("Curso atualizado com sucesso!");
+          setTimeout(() => {
+          router.push("/cursos");
+          }, 1500);
+                
       } else {
         toast.error(submitStatus.message, toastStyle);
       }
     }
   }, [submitStatus]);
 
+    useEffect(() => {
+    if (!isAuthLoading) {
+      CourseForm();
+    }
+  }, [isAuthLoading]);
+
+if (isAuthLoading) {
+      return <Loading message=" Academia Egaf..." />;
+    }
   const handleReset = () => {
     reset();
     toast.success("Formulário limpo com sucesso", {
@@ -85,6 +102,7 @@ export function CourseForm() {
 
   return (
     <div className="p-6 sm:p-8 xl:px-16 2xl:px-32 lg:pt-12">
+      <Toaster position="top-center" reverseOrder={false} className="flex flex-col text-center gap-1 w-full"/>
       <form onSubmit={handleSubmit} className="space-y-6 lg:space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8 pb-8">
           {/* Image Upload */}

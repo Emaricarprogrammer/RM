@@ -31,8 +31,12 @@ export const courseSchema = z.object({
     .string({ message: "Selecione uma categoria" })
     .trim()
     .min(1, { message: "Selecione uma categoria" }),
-  course_type: z.enum(["online", "presential"], {
-    message: "Selecione o tipo de curso",
-  }),
+    course_type: z.string()
+    .transform(val => val.toLowerCase()) // Converte para minúsculo para validação
+    .pipe(
+      z.enum(["online", "presential"], {
+        errorMap: () => ({ message: "Selecione o tipo de curso (Online ou Presencial)" })
+      })
+    ),
   image_url: z.any(),
 });

@@ -11,6 +11,13 @@ import { ErrorPage } from "@/app/_components/ErrorPage";
 export default async function Landing() {
 
   const result = await GetAllCourses()
+
+  if (!result)
+  {
+    return (
+      <ErrorPage message="Ocorreu um erro ao carregar esta página, tente novamente"/>
+    )
+  }
  
   const courses = result.response.map(course => ({
     id: course.id_course,
@@ -25,6 +32,8 @@ export default async function Landing() {
     instructor: course.instructors_datas.full_name || 'Instrutor não especificado',
     instructorId: course.instructors_datas?.id_instructor || '0',
   }))
+
+
 
   return (
     <div className="bg-slate-50">

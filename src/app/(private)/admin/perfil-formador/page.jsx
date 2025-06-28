@@ -9,56 +9,68 @@ import {
   Edit,
   Trash2,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Footer } from "@/app/_components/Footer";
+import { InstrutorProfile } from "@/api/Users/Instructors/InstructorProfile";
+import { useSearchParams } from "next/navigation";
+import { Loading } from "@/app/_components/Loading";
+import { NotFoundPage } from "@/app/_components/Notfound";
+import { toast, Toaster} from "react-hot-toast";
+import { deleteInstructor } from "@/api/Users/Instructors/deleteInstructor";
+import { useRouter } from "next/navigation";
+import { useUserAuth } from "@/hooks/useAuth";
 
 export default function InstructorProfilePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [submittedSearch, setSubmittedSearch] = useState("");
+  const [instructor, setInstructor] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const coursesPerPage = 3;
+  const router = useRouter()
+  const isAuthLoading = useUserAuth(["ADMIN"])
 
-  // Gerador de cursos de exemplo
-  const generateMockCourses = () => {
-    const mockCourses = [];
-    for (let i = 1; i <= 12; i++) {
-      mockCourses.push({
-        id: i,
-        title: `Curso ${i} - ${
-          i % 2 === 0 ? "React Avançado" : "TypeScript Masterclass"
-        }`,
-        description:
-          i % 2 === 0
-            ? `Aprenda técnicas avançadas de React na edição ${i}`
-            : `Domine TypeScript do zero ao avançado na edição ${i}`,
-        image_url:
-          i % 2 === 0
-            ? "https://images.unsplash.com/photo-1633356122544-f134324a6cee?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"
-            : "https://miro.medium.com/v2/resize:fit:1100/format:webp/1*ud0sEpluCXzmf9Jr7x37UA.png",
-        duration: 300 + i * 10,
-        students: 500 + i * 50,
-        price: 19999.99 + i * 500,
-      });
+  const searchParams = useSearchParams();
+  const id_instructor = searchParams.get('id');
+  const token = localStorage.getItem("access")
+
+  useEffect(() => {
+    if (!isAuthLoading && token)
+    {
+    const fetchInstructorData = async () => {
+      try {
+        setIsLoading(true);
+        const response = await InstrutorProfile(id_instructor);
+        setInstructor(response.response);
+      } catch (err) {
+        console.error("Error fetching instructor data:", err);
+        setError("Erro ao carregar perfil do instrutor. Tente novamente mais tarde.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+  
+    if (id_instructor) {
+      fetchInstructorData();
     }
-    return mockCourses;
-  };
-
-  const instructor = {
-    id: 1,
-    name: "Maria Souza",
-    bio: `Engenheira de software com 8 anos de experiência em desenvolvimento front-end. Especialista em React e arquitetura de aplicações escaláveis. Já trabalhou em empresas como Netflix e Uber. Atualmente dedica-se ao ensino online, compartilhando conhecimento com milhares de alunos em toda a lusofonia. Participou de conferências internacionais como ReactConf e JSWorld.`,
-    image_url: "https://randomuser.me/api/portraits/women/44.jpg",
-    total_courses: 12,
-    total_students: 12450,
-    courses: generateMockCourses(),
-  };
+  }
+  }, [id_instructor, isAuthLoading, token]);
 
   const formatDuration = (minutes) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return `${hours}h ${mins}min`;
+  };
+
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat("pt-AO", {
+      style: "currency",
+      currency: "AOA"
+    }).format(price / 100);
   };
 
   const handleSearch = (e) => {
@@ -67,12 +79,56 @@ export default function InstructorProfilePage() {
     setCurrentPage(1);
   };
 
-  const filteredCourses = instructor.courses.filter(
+  const handleDeleteClick = () => {
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    setIsDeleting(true);
+    
+    try {
+      // Pequeno delay para melhorar a experiência do usuário
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Chamada à API para deletar o formador
+      await deleteInstructor(instructor.id_instructor, token);
+      
+      toast.success("Formador removido com sucesso!");
+      setTimeout(() => {
+         window.location.href = "/admin/formadores";
+        }, 1500)
+      
+    } catch (error) {
+      toast.error("Ocorreu um erro ao remover o formador");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+    }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+  };
+  if (isAuthLoading)
+  {
+    return (
+      <Loading message="Academia Egaf..."/>
+    )
+  }
+  if (isLoading) {
+    return <Loading message="Carregando perfil do formador..." />;
+  }
+
+  if (error || !instructor) {
+    return <NotFoundPage message="Perfil do formador não encontrado" />;
+  }
+
+  const filteredCourses = instructor.instructors_courses?.courses?.filter(
     (course) =>
       submittedSearch === "" ||
       course.title.toLowerCase().includes(submittedSearch.toLowerCase()) ||
       course.description.toLowerCase().includes(submittedSearch.toLowerCase())
-  );
+  ) || [];
 
   const indexOfLastCourse = currentPage * coursesPerPage;
   const indexOfFirstCourse = indexOfLastCourse - coursesPerPage;
@@ -81,22 +137,14 @@ export default function InstructorProfilePage() {
     indexOfLastCourse
   );
   const totalPages = Math.ceil(filteredCourses.length / coursesPerPage);
-
-  const handleDeleteClick = () => {
-    setShowDeleteModal(true);
-  };
-
-  const cancelDelete = () => {
-    setShowDeleteModal(false);
-  };
-
-  const confirmDelete = () => {
-    console.log("Formador deletado:", instructor.id);
-    setShowDeleteModal(false);
-  };
+  const totalStudents = instructor.instructors_courses?.courses?.reduce(
+    (sum, course) => sum + (course.total_watching || 0),
+    0
+  ) || 0;
 
   return (
     <div className="bg-gray-50 min-h-screen">
+      <Toaster position="top-center" reverseOrder={false} className="flex flex-col text-center gap-1 w-full"/>
       {/* Modal de Confirmação de Exclusão */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -105,21 +153,32 @@ export default function InstructorProfilePage() {
               Confirmar Exclusão
             </h3>
             <p className="text-gray-600 mb-6">
-              Tem certeza que deseja remover o formador {instructor.name}? Esta
+              Tem certeza que deseja remover o formador{" "}
+              <span className="font-semibold">{instructor.full_name}</span>? Esta
               ação não pode ser desfeita.
             </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={cancelDelete}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                disabled={isDeleting}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
               >
                 Cancelar
               </button>
               <button
                 onClick={confirmDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                disabled={isDeleting}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 flex items-center justify-center min-w-24"
               >
-                Confirmar Remoção
+                {isDeleting ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Removendo...
+                  </>
+                ) : 'Confirmar'}
               </button>
             </div>
           </div>
@@ -136,24 +195,24 @@ export default function InstructorProfilePage() {
         </Link>
 
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Conteúdo Principal - Ordem mobile: Perfil → Estatísticas → Cursos */}
+          {/* Conteúdo Principal */}
           <div className="w-full lg:w-2/3 space-y-6">
-            {/* 1. Card do Formador */}
+            {/* Card do Formador */}
             <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100">
               <div className="flex flex-col sm:flex-row gap-6 items-start">
                 <img
-                  src={instructor.image_url}
-                  alt={instructor.name}
+                  src={instructor.profile_image || "https://via.placeholder.com/150"}
+                  alt={instructor.full_name}
                   className="w-32 h-32 rounded-full object-cover"
                 />
                 <div className="w-full">
                   <div className="flex justify-between items-start">
                     <h1 className="text-3xl font-bold bg-gradient-to-br from-blue-900 to-blue-700 bg-clip-text text-transparent mb-2">
-                      {instructor.name}
+                      {instructor.full_name}
                     </h1>
                     <div className="flex gap-2">
                       <Link
-                        href={`/admin/editar-formador?id=${instructor.id}`}
+                        href={`/admin/editar-formador?id=${instructor.id_instructor}`}
                         className="p-2 text-blue-600 hover:text-blue-800 rounded-full hover:bg-blue-50 transition-colors"
                         title="Editar perfil"
                       >
@@ -171,24 +230,23 @@ export default function InstructorProfilePage() {
                   <div className="flex flex-wrap gap-4 mb-4">
                     <div className="flex items-center text-gray-700">
                       <BookOpen className="w-5 h-5 text-gray-500 mr-2" />
-                      <span>{instructor.total_courses} cursos</span>
+                      <span>{instructor.instructors_courses?.courses?.length || 0} cursos</span>
                     </div>
                     <div className="flex items-center text-gray-700">
                       <Users className="w-5 h-5 text-gray-500 mr-2" />
                       <span>
-                        {instructor.total_students.toLocaleString("pt-BR")}{" "}
-                        alunos
+                        {totalStudents.toLocaleString("pt-BR")} alunos
                       </span>
                     </div>
                   </div>
                   <p className="text-gray-700 leading-relaxed">
-                    {instructor.bio}
+                    {instructor.biography || "Sem biografia disponível."}
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* 2. Estatísticas (APENAS MOBILE) */}
+            {/* Estatísticas (Mobile) */}
             <div className="block lg:hidden">
               <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100">
                 <h3 className="text-xl font-semibold text-gray-800 mb-4">
@@ -201,7 +259,7 @@ export default function InstructorProfilePage() {
                       <div>
                         <p className="text-sm text-gray-500">Total de Cursos</p>
                         <p className="text-xl font-bold bg-gradient-to-br from-blue-900 to-blue-700 bg-clip-text text-transparent">
-                          {instructor.total_courses}
+                          {instructor.instructors_courses?.courses?.length || 0}
                         </p>
                       </div>
                     </div>
@@ -212,7 +270,7 @@ export default function InstructorProfilePage() {
                       <div>
                         <p className="text-sm text-gray-500">Total de Alunos</p>
                         <p className="text-xl font-bold bg-gradient-to-br from-blue-900 to-blue-700 bg-clip-text text-transparent">
-                          {instructor.total_students.toLocaleString("pt-BR")}
+                          {totalStudents.toLocaleString("pt-BR")}
                         </p>
                       </div>
                     </div>
@@ -221,7 +279,7 @@ export default function InstructorProfilePage() {
               </div>
             </div>
 
-            {/* 3. Cursos Ministrados */}
+            {/* Cursos Ministrados */}
             <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100">
               <h2 className="text-2xl font-bold bg-gradient-to-br from-blue-900 to-blue-700 bg-clip-text text-transparent mb-6">
                 Cursos Ministrados
@@ -257,13 +315,13 @@ export default function InstructorProfilePage() {
                   <div className="space-y-6">
                     {currentCourses.map((course) => (
                       <div
-                        key={course.id}
+                        key={course.id_course}
                         className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow"
                       >
                         <div className="flex flex-col md:flex-row">
                           <div className="md:w-1/3">
                             <img
-                              src={course.image_url}
+                              src={course.image_url || "https://via.placeholder.com/300x200"}
                               alt={course.title}
                               className="w-full h-full min-h-[180px] object-cover"
                             />
@@ -274,7 +332,7 @@ export default function InstructorProfilePage() {
                                 {course.title}
                               </h3>
                               <span className="text-xl font-bold bg-gradient-to-br from-blue-900 to-blue-700 bg-clip-text text-transparent">
-                                {course.price.toLocaleString("pt-PT")} Kz
+                                {formatPrice(course.price)}
                               </span>
                             </div>
 
@@ -290,17 +348,16 @@ export default function InstructorProfilePage() {
                               <div className="flex items-center text-gray-700">
                                 <Users className="w-5 h-5 text-gray-500 mr-2" />
                                 <span>
-                                  {course.students.toLocaleString("pt-BR")}{" "}
-                                  alunos
+                                  {(course.total_watching || 0).toLocaleString("pt-BR")} alunos
                                 </span>
                               </div>
                             </div>
 
                             <Link
-                              href={`/detalhes-do-curso?id=${course.id}`}
+                              href={`/admin/detalhes-do-curso?id=${course.id_course}`}
                               className="inline-flex items-center bg-gradient-to-br from-blue-900 to-blue-700 bg-clip-text text-transparent font-medium hover:from-blue-800 hover:to-blue-600"
                             >
-                              Ver curso detalhes →
+                              Ver detalhes →
                             </Link>
                           </div>
                         </div>
@@ -383,14 +440,16 @@ export default function InstructorProfilePage() {
               ) : (
                 <div className="text-center py-12">
                   <p className="text-gray-500">
-                    Nenhum curso encontrado com esse termo de busca.
+                    {instructor.instructors_courses?.courses?.length === 0
+                      ? "Este formador ainda não possui cursos."
+                      : "Nenhum curso encontrado com esse termo de busca."}
                   </p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Estatísticas (APENAS DESKTOP) */}
+          {/* Estatísticas (Desktop) */}
           <div className="hidden lg:block lg:w-1/3">
             <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100">
               <h3 className="text-xl font-semibold text-gray-800 mb-4">
@@ -403,7 +462,7 @@ export default function InstructorProfilePage() {
                     <div>
                       <p className="text-sm text-gray-500">Total de Cursos</p>
                       <p className="text-xl font-bold bg-gradient-to-br from-blue-900 to-blue-700 bg-clip-text text-transparent">
-                        {instructor.total_courses}
+                        {instructor.instructors_courses?.courses?.length || 0}
                       </p>
                     </div>
                   </div>
@@ -414,7 +473,7 @@ export default function InstructorProfilePage() {
                     <div>
                       <p className="text-sm text-gray-500">Total de Alunos</p>
                       <p className="text-xl font-bold bg-gradient-to-br from-blue-900 to-blue-700 bg-clip-text text-transparent">
-                        {instructor.total_students.toLocaleString("pt-BR")}
+                        {totalStudents.toLocaleString("pt-BR")}
                       </p>
                     </div>
                   </div>

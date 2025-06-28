@@ -38,6 +38,7 @@ export function OngoingCourses() {
 
         // 3. Buscar cursos da API
         const coursesData = await MyCourses(id_student, token);
+        console.log(coursesData)
         
         if (coursesData && coursesData.length > 0) {
           setCourses(coursesData);
@@ -70,7 +71,7 @@ export function OngoingCourses() {
   };
 
   const continueWatching = (courseId) => {
-    console.log(`Continuar curso ${courseId}`);
+    window.location.href = `/assistir-curso?id=${courseId}`
   };
 
   if (loading) {

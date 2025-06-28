@@ -8,7 +8,6 @@ async function GetAllCourses()
         return result.data
     } catch (error)
     {
-        console.log(error)
         return null
     }
 }

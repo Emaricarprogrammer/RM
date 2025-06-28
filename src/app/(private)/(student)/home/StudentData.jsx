@@ -51,7 +51,7 @@ export function StudentData() {
           
           if (!token)
           {
-            router.push('/login');
+            router.push('/');
             return;
           }
 
@@ -60,11 +60,12 @@ export function StudentData() {
 
           if (!id_student)
           {
-            router.push('/login');
+            router.push('/');
             return;
           }
 
           const result = await MyProfile(id_student, token);
+          
 
           if (result.success) {
             setStudent({
@@ -90,7 +91,7 @@ export function StudentData() {
   }, [isAuthLoading]);
 
   if (isAuthLoading) {
-    return <Loading message="Estamos preparando tudo..." />;
+      return <Loading message=" Academia Egaf..." />;
   }
 
   if (loading) {

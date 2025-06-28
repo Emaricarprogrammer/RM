@@ -2,77 +2,227 @@
 
 import { Upload, X, Loader2, ChevronDown } from "lucide-react";
 import { useEditCourseForm } from "@/hooks/useEditCourseForm";
-import { updateCourseData } from "./edit-course";
+import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { EditCourse } from "@/api/Courses/editCourse";
+import { Toaster, toast } from "react-hot-toast";
+import { GetAllCategories } from "@/api/Courses/Categories/Categories";
+import { AllInstrutors } from "@/api/Users/Instructors/allInstructors";
+import { Loading } from "@/app/_components/Loading";
+import { useUserAuth } from "@/hooks/useAuth";
 
 export function EditCourseForm({ initialValues }) {
+  const router = useRouter();
+  const [categories, setCategories] = useState([]);
+  const [instructors, setInstructors] = useState([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const token = typeof window !== 'undefined' ? localStorage.getItem("access") : null;
+  const isAuthLoading = useUserAuth(["ADMIN"])
+
+  if (!token) {
+    router.replace("/")
+    return;
+  }
+
   const {
-    previewImage,
-    categories,
-    instructors,
-    handleImageChange,
-    isSubmitting,
-    handleSubmit,
     register,
-    errors,
+    handleSubmit,
+    formState: { errors, isSubmitting, dirtyFields },
+    reset,
+    setValue,
+    watch,
+    control,
   } = useEditCourseForm(initialValues);
 
-  const onSubmit = async (data) => {
-    await updateCourseData({ ...data, id: initialValues.id });
+  // Load categories and instructors
+  useEffect(() => {
+    const loadFormData = async () => {
+      try {
+        setIsLoadingData(true);
+        const [categoriesRes, instructorsRes] = await Promise.all([
+          GetAllCategories(),
+          AllInstrutors(),
+        ]);
+
+        if (categoriesRes.success) {
+          setCategories(categoriesRes.response);
+        }
+
+        if (instructorsRes.success) {
+          setInstructors(instructorsRes.response);
+        }
+      } catch (error) {
+        toast.error("Erro ao carregar dados adicionais");
+        console.error("Erro:", error);
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    loadFormData();
+    reset({
+      ...initialValues,
+      id_instructor: initialValues.id_instructor_fk,
+      course_type: initialValues.course_type,
+      id_category_course_fk: initialValues.id_category_course_fk
+    });
+  }, [initialValues, reset]);
+
+    useEffect(() => {
+      if (!isAuthLoading) {
+        EditCourseForm();
+      }
+      }, [isAuthLoading]);
+    
+    if (isAuthLoading)
+      {
+        return <Loading message=" Academia Egaf..." />;
+      }
+
+  // Check for form changes
+  const hasChanges = useMemo(() => {
+    const currentValues = watch();
+    return Object.keys(dirtyFields).length > 0 || 
+           (currentValues.image_url !== initialValues.image_url && 
+            currentValues.image_url !== "");
+  }, [watch(), dirtyFields, initialValues]);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("O tamanho da imagem não pode exceder 5MB");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setValue("image_url", reader.result, { shouldDirty: true });
+      };
+      reader.readAsDataURL(file);
+    }
   };
+
+  const removeImage = () => {
+    setValue("image_url", "", { shouldDirty: true });
+    const fileInput = document.getElementById("dropzone-file");
+    if (fileInput) fileInput.value = "";
+  };
+
+  const onSubmit = async (data) => {
+    if (!hasChanges) {
+      toast.error("Nenhuma alteração foi feita no formulário");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      
+      // Add only changed fields
+      if (dirtyFields.title) formData.append('title', data.title);
+      if (dirtyFields.duration) formData.append('duration', data.duration);
+      if (dirtyFields.price) formData.append('price', data.price);
+      if (dirtyFields.total_lessons) formData.append('total_lessons', data.total_lessons);
+      if (dirtyFields.description) formData.append('description', data.description);
+      if (dirtyFields.id_instructor) formData.append('id_instructor_fk', data.id_instructor);
+      if (dirtyFields.course_type) formData.append('course_type', data.course_type);
+      if (dirtyFields.id_category_course_fk) {
+        formData.append('id_category_course_fk', data.id_category_course_fk);
+      }
+
+      // Handle image upload
+      const fileInput = document.getElementById("dropzone-file");
+      if (fileInput?.files[0]) {
+        formData.append("image_course", fileInput.files[0]);
+      } else if (dirtyFields.image_url && !watch("image_url") && initialValues.image_url) {
+        formData.append("remove_image", "true");
+      }
+
+      const response = await EditCourse(initialValues.id_course, formData, token);
+
+      if (response.success) {
+        toast.success("Curso atualizado com sucesso!");
+        setTimeout(() => {
+          router.push("/cursos");
+        }, 1500);
+      } else {
+        toast.error(response.message || "Erro ao atualizar curso");
+      }
+    } catch (error) {
+      toast.error(error.message || "Erro ao atualizar curso");
+    }
+  };
+
+  if (isLoadingData) {
+    return (
+      <Loading message="Carregando os detalhes do curso..."/>
+    );
+  }
 
   return (
     <div className="p-6 sm:p-8 xl:px-16 2xl:px-32 lg:pt-12">
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="space-y-6 lg:space-y-8"
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8 pb-8">
-          {/* Image Upload */}
-          <div className="md:col-span-2 xl:col-span-3 mx-auto w-full max-w-lg space-y-4">
-            <label className="block font-medium text-gray-700 text-center">
-              Imagem de Capa
-            </label>
-            <div className="flex flex-col items-center gap-4">
-              <div className="relative w-full h-64 border-2 border-gray-300 border-dashed rounded-lg overflow-hidden bg-gray-50 hover:bg-gray-100 transition-colors">
-                {previewImage ? (
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 lg:space-y-8">
+        <Toaster 
+          position="top-center" 
+          reverseOrder={false} 
+          toastOptions={{
+            duration: 3000,
+            style: {
+              minWidth: '300px',
+            },
+          }}
+        />
+        
+        {/* Image upload section */}
+        <div className="md:col-span-2 xl:col-span-3 mx-auto w-full max-w-lg space-y-4">
+          <label className="block font-medium text-gray-700 text-center">
+            Imagem de Capa
+          </label>
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative w-full h-64 border-2 border-gray-300 border-dashed rounded-lg overflow-hidden bg-gray-50 hover:bg-gray-100 transition-colors">
+              {watch("image_url") ? (
+                <>
                   <img
-                    src={previewImage}
+                    src={watch("image_url")}
                     alt="Preview"
-                    className="w-full h-full object-cover cursor-pointer"
+                    className="w-full h-full object-cover"
                   />
-                ) : (
-                  <div className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
-                    <Upload className="w-8 h-8 mb-3 text-gray-400" />
-                    <p className="mb-2 text-sm text-gray-500">
-                      <span className="font-semibold">Clique para enviar</span>
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      PNG, JPG ou JPEG (MAX. 5MB)
-                    </p>
-                  </div>
-                )}
-                <input
-                  id="dropzone-file"
-                  type="file"
-                  className="hidden"
-                  onChange={handleImageChange}
-                  accept="image/png, image/jpeg, image/jpg"
-                />
-                <label
-                  htmlFor="dropzone-file"
-                  className="absolute inset-0 flex items-center justify-center cursor-pointer"
-                >
-                  {previewImage && (
-                    <div className="absolute bottom-2 right-2 bg-gray-900 bg-opacity-70 text-white rounded-md p-2 text-sm hover:bg-opacity-90 transition-opacity">
-                      Trocar Imagem
-                    </div>
-                  )}
-                </label>
-              </div>
+                  <button
+                    type="button"
+                    onClick={removeImage}
+                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center w-full h-full">
+                  <Upload className="w-8 h-8 mb-3 text-gray-400" />
+                  <p className="mb-2 text-sm text-gray-500">
+                    <span className="font-semibold">Clique para enviar</span>
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    PNG, JPG ou JPEG (MAX. 5MB)
+                  </p>
+                </div>
+              )}
+              <input
+                id="dropzone-file"
+                type="file"
+                className="hidden"
+                onChange={handleImageChange}
+                accept="image/png, image/jpeg, image/jpg"
+              />
+              <label
+                htmlFor="dropzone-file"
+                className="absolute inset-0 flex items-center justify-center cursor-pointer"
+              />
             </div>
           </div>
+        </div>
 
-          {/* Campos do formulário */}
+        {/* Form fields */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8 pb-8">
+          {/* Title */}
           <div className="md:col-span-2 xl:col-span-3 space-y-2">
             <label className="block font-medium text-gray-700">
               Título do Curso
@@ -83,12 +233,11 @@ export function EditCourseForm({ initialValues }) {
               className="w-full px-4 py-3 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-800 transition-all outline-none"
             />
             {errors.title && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.title.message}
-              </p>
+              <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>
             )}
           </div>
 
+          {/* Description */}
           <div className="md:col-span-2 xl:col-span-3 space-y-2">
             <label className="block font-medium text-gray-700">Descrição</label>
             <textarea
@@ -103,6 +252,7 @@ export function EditCourseForm({ initialValues }) {
             )}
           </div>
 
+          {/* Duration */}
           <div className="space-y-2">
             <label className="block font-medium text-gray-700">
               Duração (horas)
@@ -120,6 +270,7 @@ export function EditCourseForm({ initialValues }) {
             )}
           </div>
 
+          {/* Price */}
           <div className="space-y-2">
             <label className="block font-medium text-gray-700">
               Preço (Kz)
@@ -131,12 +282,11 @@ export function EditCourseForm({ initialValues }) {
               className="w-full px-4 py-3 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-800 transition-all outline-none"
             />
             {errors.price && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.price.message}
-              </p>
+              <p className="text-red-500 text-sm mt-1">{errors.price.message}</p>
             )}
           </div>
 
+          {/* Total Lessons */}
           <div className="space-y-2">
             <label className="block font-medium text-gray-700">
               Total de Aulas
@@ -154,6 +304,7 @@ export function EditCourseForm({ initialValues }) {
             )}
           </div>
 
+          {/* Instructor */}
           <div className="space-y-2">
             <label className="block font-medium text-gray-700">Instrutor</label>
             <div className="relative">
@@ -163,8 +314,11 @@ export function EditCourseForm({ initialValues }) {
               >
                 <option value="">Selecione um instrutor</option>
                 {instructors.map((instructor) => (
-                  <option key={instructor.id} value={instructor.id}>
-                    {instructor.name}
+                  <option 
+                    key={`instructor-${instructor.id_instructor}`}
+                    value={instructor.id_instructor}
+                  >
+                    {instructor.full_name}
                   </option>
                 ))}
               </select>
@@ -179,6 +333,7 @@ export function EditCourseForm({ initialValues }) {
             )}
           </div>
 
+          {/* Category */}
           <div className="space-y-2">
             <label className="block font-medium text-gray-700">Categoria</label>
             <div className="relative">
@@ -188,8 +343,11 @@ export function EditCourseForm({ initialValues }) {
               >
                 <option value="">Selecione uma categoria</option>
                 {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
+                  <option 
+                    key={`category-${category.id_category_course}`}
+                    value={category.id_category_course}
+                  >
+                    {category.name_category_courses}
                   </option>
                 ))}
               </select>
@@ -204,7 +362,7 @@ export function EditCourseForm({ initialValues }) {
             )}
           </div>
 
-          {/* Novo campo: Tipo de Curso */}
+          {/* Course Type */}
           <div className="space-y-2">
             <label className="block font-medium text-gray-700">
               Tipo de Curso
@@ -214,9 +372,8 @@ export function EditCourseForm({ initialValues }) {
                 {...register("course_type")}
                 className="bg-gray-50 w-full px-4 py-3 pr-10 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-800 transition-all outline-none appearance-none"
               >
-                <option value="">Selecione o tipo</option>
-                <option value="online">Online</option>
-                <option value="presencial">Presencial</option>
+                <option value="ONLINE">Online</option>
+                <option value="PRESENTIAL">Presencial</option>
               </select>
               <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                 <ChevronDown className="h-5 w-5 text-gray-400" />
@@ -230,19 +387,21 @@ export function EditCourseForm({ initialValues }) {
           </div>
         </div>
 
-        <hr />
-
+        {/* Action buttons */}
         <div className="pt-3 pb-4 flex justify-end gap-4">
           <button
             type="button"
+            onClick={() => router.push("/cursos")}
             className="px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-md hover:bg-gray-50 transition-colors"
           >
             Cancelar
           </button>
           <button
             type="submit"
-            className="px-6 py-3 bg-gradient-to-br from-blue-900 to-blue-700 text-white font-medium rounded-md shadow-md transition-colors flex items-center justify-center min-w-32"
-            disabled={isSubmitting}
+            className={`px-6 py-3 bg-gradient-to-br from-blue-900 to-blue-700 text-white font-medium rounded-md shadow-md transition-colors flex items-center justify-center min-w-32 ${
+              !hasChanges ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            disabled={isSubmitting || !hasChanges}
           >
             {isSubmitting ? (
               <>

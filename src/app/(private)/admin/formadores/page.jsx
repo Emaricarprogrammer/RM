@@ -9,9 +9,15 @@ import {
   Trash2,
   Plus,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Footer } from "@/app/_components/Footer";
+import { AllInstrutors } from "@/api/Users/Instructors/allInstructors";
+import { deleteInstructor } from "@/api/Users/Instructors/deleteInstructor";
+import { Loading } from "@/app/_components/Loading";
+import { toast, Toaster} from "react-hot-toast";
+import { useUserAuth } from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
 
 export default function InstructorsListPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -19,33 +25,39 @@ export default function InstructorsListPage() {
   const [submittedSearch, setSubmittedSearch] = useState("");
   const [instructorToDelete, setInstructorToDelete] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [instructors, setInstructors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const instructorsPerPage = 6;
+  const isAuthLoading = useUserAuth(["ADMIN"])
+  const router = useRouter()
+  const token = localStorage.getItem("access")
 
-  // Gerador de formadores de exemplo
-  const generateMockInstructors = () => {
-    const mockInstructors = [];
-
-    for (let i = 1; i <= 24; i++) {
-      mockInstructors.push({
-        id: i,
-        name:
-          i % 2 === 0
-            ? `Maria Souza ${Math.floor(i / 2)}`
-            : `João Silva ${Math.floor(i / 2)}`,
-        bio: `Engenheiro(a) de software com ${
-          8 + i
-        } anos de experiência em desenvolvimento.`,
-        image_url:
-          i % 2 === 0
-            ? `https://randomuser.me/api/portraits/women/${i % 50}.jpg`
-            : `https://randomuser.me/api/portraits/men/${i % 50}.jpg`,
-        total_courses: 5 + i,
-        total_students: 5000 + i * 500,
-      });
-    }
-    return mockInstructors;
-  };
-
+  useEffect(() => {
+    if (!isAuthLoading && token)
+    {
+    const fetchInstructors = async () => {
+      try {
+        const data = await AllInstrutors();
+        setInstructors(data.response);
+        setLoading(false);
+      } catch (err) {
+        setError(err.message);
+        setLoading(false);
+      }
+    };
+  
+    fetchInstructors()
+  }
+  }, [isAuthLoading, token]);
+  
+if (isAuthLoading)
+{
+  return (
+    <Loading message="Academia Egaf..."/>
+  )
+}
   const handleSearch = (e) => {
     e.preventDefault();
     setSubmittedSearch(searchTerm);
@@ -57,11 +69,29 @@ export default function InstructorsListPage() {
     setShowDeleteModal(true);
   };
 
-  const confirmDelete = () => {
-    // Aqui você implementaria a lógica para deletar o formador
-    console.log("Formador deletado:", instructorToDelete);
-    setShowDeleteModal(false);
-    setInstructorToDelete(null);
+  const confirmDelete = async () => {
+    setIsDeleting(true);
+    
+    try {
+      // Pequeno delay para melhorar a experiência do usuário
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      await deleteInstructor(instructorToDelete.id_instructor, token);
+      
+      // Atualiza a lista após deletar
+      setInstructors(prev => prev.filter(i => i.id_instructor !== instructorToDelete.id_instructor));
+      
+      toast.success("Formador removido com sucesso!");
+      
+      
+    } catch (error) {
+      console.error("Erro ao deletar:", error);
+      toast.error("Ocorreu um erro ao remover o formador");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+      setInstructorToDelete(null);
+    }
   };
 
   const cancelDelete = () => {
@@ -69,12 +99,22 @@ export default function InstructorsListPage() {
     setInstructorToDelete(null);
   };
 
+  // Função para contar cursos e alunos
+  const getCourseAndStudentCounts = (instructor) => {
+    const courseCount = instructor.my_courses?.courses?.length || 0;
+    const studentCount = instructor.my_courses?.courses?.reduce(
+      (total, course) => total + (course.students_count || 0), 0
+    ) || 0;
+    
+    return { courseCount, studentCount };
+  };
+
   // Filtra os formadores
-  const filteredInstructors = generateMockInstructors().filter(
+  const filteredInstructors = instructors.filter(
     (instructor) =>
       submittedSearch === "" ||
-      instructor.name.toLowerCase().includes(submittedSearch.toLowerCase()) ||
-      instructor.bio.toLowerCase().includes(submittedSearch.toLowerCase())
+      instructor.full_name.toLowerCase().includes(submittedSearch.toLowerCase()) ||
+      instructor.biography?.toLowerCase().includes(submittedSearch.toLowerCase())
   );
 
   // Paginação
@@ -86,8 +126,29 @@ export default function InstructorsListPage() {
   );
   const totalPages = Math.ceil(filteredInstructors.length / instructorsPerPage);
 
+  if (loading) {
+    return <Loading message="Carregando os formadores..." />;
+  }
+
+  if (error) {
+    return (
+      <div className="bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg text-red-600">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-gray-50 min-h-screen">
+      <Toaster position="top-center" reverseOrder={false} className="flex flex-col text-center gap-1 w-full"/>
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col">
           {/* Cabeçalho com título, busca e botão de adicionar */}
@@ -134,70 +195,72 @@ export default function InstructorsListPage() {
           {currentInstructors.length > 0 ? (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                {currentInstructors.map((instructor) => (
-                  <div
-                    key={instructor.id}
-                    className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow border border-gray-100 relative"
-                  >
-                    {/* Botões de ação */}
-                    <div className="absolute top-4 right-4 flex gap-2">
-                      <Link
-                        href={`/admin/editar-formador?id=${instructor.id}`}
-                        className="p-2 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors"
-                        title="Editar"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Link>
-                      <button
-                        onClick={() => handleDeleteClick(instructor)}
-                        className="p-2 bg-red-100 text-red-700 rounded-full hover:bg-red-200 transition-colors"
-                        title="Apagar"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <div className="p-6 pt-12">
-                      <div className="flex items-start gap-4 mb-4">
-                        <img
-                          src={instructor.image_url}
-                          alt={instructor.name}
-                          className="w-16 h-16 rounded-full object-cover"
-                        />
-                        <div>
-                          <h2 className="text-xl font-bold text-gray-900">
-                            {instructor.name}
-                          </h2>
-                        </div>
+                {currentInstructors.map((instructor) => {
+                  const { courseCount, studentCount } = getCourseAndStudentCounts(instructor);
+                  
+                  return (
+                    <div
+                      key={instructor.id_instructor}
+                      className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow border border-gray-100 relative"
+                    >
+                      {/* Botões de ação */}
+                      <div className="absolute top-4 right-4 flex gap-2">
+                        <Link
+                          href={`/admin/editar-formador?id=${instructor.id_instructor}`}
+                          className="p-2 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors"
+                          title="Editar"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Link>
+                        <button
+                          onClick={() => handleDeleteClick(instructor)}
+                          className="p-2 bg-red-100 text-red-700 rounded-full hover:bg-red-200 transition-colors"
+                          title="Apagar"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
 
-                      <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                        {instructor.bio}
-                      </p>
+                      <div className="p-6 pt-12">
+                        <div className="flex items-start gap-4 mb-4">
+                          <img
+                            src={instructor.profile_image || "https://via.placeholder.com/150"}
+                            alt={instructor.full_name}
+                            className="w-16 h-16 rounded-full object-cover"
+                          />
+                          <div>
+                            <h2 className="text-xl font-bold text-gray-900">
+                              {instructor.full_name}
+                            </h2>
+                            <p className="text-sm text-gray-500">{instructor.email}</p>
+                          </div>
+                        </div>
 
-                      <div className="flex justify-between items-center mb-4">
-                        <div className="flex items-center text-sm text-gray-500">
-                          <BookOpen className="w-4 h-4 mr-1" />
-                          <span>{instructor.total_courses} cursos</span>
+                        <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                          {instructor.biography || "Sem biografia disponível."}
+                        </p>
+
+                        <div className="flex justify-between items-center mb-4">
+                          <div className="flex items-center text-sm text-gray-500">
+                            <BookOpen className="w-4 h-4 mr-1" />
+                            <span>{courseCount} cursos</span>
+                          </div>
+                          <div className="flex items-center text-sm text-gray-500">
+                            <Users className="w-4 h-4 mr-1" />
+                            <span>{studentCount.toLocaleString("pt-BR")} alunos</span>
+                          </div>
                         </div>
-                        <div className="flex items-center text-sm text-gray-500">
-                          <Users className="w-4 h-4 mr-1" />
-                          <span>
-                            {instructor.total_students.toLocaleString("pt-BR")}{" "}
-                            alunos
-                          </span>
-                        </div>
+
+                        <Link
+                          href={`/admin/perfil-formador?id=${instructor.id_instructor}`}
+                          className="w-full block text-center bg-gradient-to-br from-blue-900 to-blue-700 hover:from-blue-800 hover:to-blue-600 text-white font-medium py-2 px-4 rounded-md transition-all"
+                        >
+                          Ver Perfil
+                        </Link>
                       </div>
-
-                      <Link
-                        href={`/admin/perfil-formador?id=${instructor.id}`}
-                        className="w-full block text-center bg-gradient-to-br from-blue-900 to-blue-700 hover:from-blue-800 hover:to-blue-600 text-white font-medium py-2 px-4 rounded-md transition-all"
-                      >
-                        Ver Perfil
-                      </Link>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Paginação */}
@@ -270,7 +333,9 @@ export default function InstructorsListPage() {
           ) : (
             <div className="text-center py-12">
               <p className="text-gray-500">
-                Nenhum formador encontrado com esse termo de busca.
+                {instructors.length === 0 
+                  ? "Nenhum formador cadastrado ainda." 
+                  : "Nenhum formador encontrado com esse termo de busca."}
               </p>
             </div>
           )}
@@ -287,20 +352,31 @@ export default function InstructorsListPage() {
             </h3>
             <p className="text-gray-600 mb-6">
               Tem certeza que deseja remover o formador{" "}
-              {instructorToDelete?.name}? Esta ação não pode ser desfeita.
+              <span className="font-semibold">{instructorToDelete?.full_name}</span>? 
+              Esta ação não pode ser desfeita.
             </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={cancelDelete}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                disabled={isDeleting}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
               >
                 Cancelar
               </button>
               <button
                 onClick={confirmDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                disabled={isDeleting}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 flex items-center justify-center min-w-24"
               >
-                Confirmar Remoção
+                {isDeleting ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Removendo...
+                  </>
+                ) : 'Confirmar'}
               </button>
             </div>
           </div>

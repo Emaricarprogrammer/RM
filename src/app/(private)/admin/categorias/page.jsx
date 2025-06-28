@@ -12,6 +12,8 @@ import {
 } from "@/api/Courses/Categories/Categories";
 import {toast, Toaster} from "react-hot-toast";
 import { jwtDecode } from "jwt-decode";
+import { useUserAuth } from "@/hooks/useAuth";
+import { Loading } from "@/app/_components/Loading";
 
 export default function CategoriesAdminPage() {
   // Estados
@@ -25,6 +27,7 @@ export default function CategoriesAdminPage() {
   const [loading, setLoading] = useState(true);
   const [accessToken, setAccessToken] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isAuthLoading = useUserAuth(["ADMIN"])
 
   // Obter token de acesso
   useEffect(() => {
@@ -56,10 +59,16 @@ export default function CategoriesAdminPage() {
       setLoading(false);
     }
   };
-
   useEffect(() => {
-    fetchCategories();
-  }, []);
+    if (!isAuthLoading) {
+      fetchCategories();
+    }
+    }, [isAuthLoading]);
+  
+  if (isAuthLoading)
+    {
+      return <Loading message=" Academia Egaf..." />;
+    }
 
   // Filtrar categorias
   const filteredCategories = categories.filter((category) =>
@@ -128,9 +137,7 @@ const handleSave = async (e) => {
             currentCategory.name,
             accessToken
         );
-        
-        console.log("Resposta da API:", response); // Para debug
-        
+                
         if (response.success) {
             // Atualiza apenas a categoria modificada sem recarregar tudo
             setCategories(categories.map(cat => 
@@ -176,7 +183,7 @@ const handleSave = async (e) => {
     <div className="bg-gray-50 min-h-screen flex flex-col">
       <div className="container mx-auto px-4 py-8 flex-grow">
         {/* Cabeçalho */}
-        <Toaster position="top-center" reverseOrder={false} className="flex flex-col text-center gap-1 w-full"/>
+        <Toaster position="bottom-center" reverseOrder={false} className="flex flex-col text-center gap-1 w-full"/>
       
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>

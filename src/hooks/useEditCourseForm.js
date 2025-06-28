@@ -1,76 +1,38 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { courseSchema } from "@/app/(private)/admin/adicionar-curso/schema";
-import {
-  fetchCategories,
-  fetchInstructors,
-} from "@/app/(private)/admin/adicionar-curso/api";
+import { useEffect } from "react";
 
 export function useEditCourseForm(initialValues) {
-  const [previewImage, setPreviewImage] = useState(
-    initialValues?.image_url || null
-  );
-  const [categories] = useState(fetchCategories());
-  const [instructors] = useState(fetchInstructors());
-  const [isSubmitting] = useState(false);
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    setValue,
-    reset,
-  } = useForm({
+  const formMethods = useForm({
     resolver: zodResolver(courseSchema),
     defaultValues: {
-      title: initialValues?.title || "",
-      description: initialValues?.description || "",
-      duration: initialValues?.duration || "",
-      price: initialValues?.price || "",
-      total_lessons: initialValues?.total_lessons || "",
-      id_instructor: initialValues?.id_instructor || "",
-      id_category_course_fk: initialValues?.id_category_course_fk || "",
-      course_type: initialValues?.course_type || "",
-      image_url: initialValues?.image_url || null,
+      title: "",
+      description: "",
+      duration: 0,
+      price: 0,
+      total_lessons: 0,
+      id_instructor: "",
+      id_category_course_fk: "",
+      course_type: "",
+      image_url: "",
+      ...initialValues,
+      id_instructor: initialValues?.id_instructor_fk || "",
     },
+    mode: "onChange",
   });
 
   useEffect(() => {
-    if (initialValues?.image_url) {
-      setPreviewImage(initialValues.image_url);
+    if (initialValues) {
+      formMethods.reset({
+        ...initialValues,
+        id_instructor: initialValues.id_instructor_fk,
+        course_type: initialValues.course_type || "",
+      });
     }
-  }, [initialValues?.image_url]);
+  }, [initialValues, formMethods]);
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewImage(reader.result);
-        setValue("image_url", file);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const removeImage = () => {
-    setPreviewImage(null);
-    setValue("image_url", null);
-    document.getElementById("dropzone-file").value = "";
-  };
-
-  return {
-    previewImage,
-    categories,
-    instructors,
-    handleImageChange,
-    removeImage,
-    isSubmitting,
-    handleSubmit,
-    register,
-    errors,
-  };
+  return formMethods;
 }

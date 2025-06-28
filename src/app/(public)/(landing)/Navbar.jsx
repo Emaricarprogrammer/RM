@@ -91,7 +91,9 @@ export function Navbar() {
     { label: "Sair", onClick: handleLogout, isButton: true }
   ];
 
-  if (isLoading) {
+  if (isLoading)
+  {
+    
     return <Loading message="Seja bem-vindo a Academia Egaf..."/>;
   }
 
@@ -177,7 +179,7 @@ export function Navbar() {
                     className={`px-4 py-2 rounded-md ${
                       isScrolled
                         ? "bg-blue-600 text-white hover:bg-blue-700"
-                        : "bg-white text-blue-700 hover:bg-gray-100"
+                        : "bg-blue-600 text-white hover:bg-gray-100"
                     } transition-colors`}
                   >
                     {link.label}

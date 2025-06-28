@@ -13,7 +13,7 @@ export const studentSchema = z.object({
     .min(5, { message: "O e-mail deve ter pelo menos 5 caracteres" }),
   password: z
     .string()
-    .min(6, { message: "A senha deve ter pelo menos 6 caracteres" })
+    .min(6, { message: "A senha deve ter pelo menos 8 caracteres" })
     .max(50, { message: "A senha deve ter no máximo 50 caracteres" }),
   contact: z
     .number({ message: "O contato é obrigatório" })

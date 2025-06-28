@@ -11,18 +11,7 @@ export async function MyInstructors(id_student, accessToken) {
         Authorization: `Bearer ${accessToken}`,
       },
     });
-    if (!response || !response.data) {
-      console.error("Resposta inválida da API:", response);
-      return [];
-    }
-    if (response.data.success > 200)
-    {
-        console.error("Erro na resposta da API:", response.data);
-        return [];
-    }
-    if (Array.isArray(response.data)) {
-      return response.data;
-    }
+    return response.data.response
 
   } catch (error)
   {

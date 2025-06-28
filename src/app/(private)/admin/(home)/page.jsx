@@ -77,7 +77,7 @@ export default function AdminHomePage() {
       value: dashboardData.allStudents.toLocaleString('pt-BR'),
       label: "Total de Alunos",
       icon: <Users size={28} />,
-      link: "/admin/alunos",
+      link: "#",
       color: "from-blue-600 to-blue-400",
     },
     {
@@ -85,7 +85,7 @@ export default function AdminHomePage() {
       value: dashboardData.allCourses.toLocaleString('pt-BR'),
       label: "Total de Cursos",
       icon: <BookText size={28} />,
-      link: "/admin/cursos",
+      link: "/cursos",
       color: "from-purple-600 to-purple-400",
     },
     {
@@ -99,7 +99,7 @@ export default function AdminHomePage() {
     {
       id: 4,
       value: dashboardData.allPendingsPayments.toLocaleString('pt-BR'),
-      label: "Pagamentos Pendentes",
+      label: "Pagamentos",
       icon: <DollarSign size={28} />,
       link: "/admin/pagamentos",
       color: "from-yellow-600 to-yellow-400",
@@ -151,7 +151,7 @@ export default function AdminHomePage() {
   ];
 
   if (isAuthLoading) {
-    return <Loading message="Estamos preparando tudo para si..." />;
+      return <Loading message=" Academia Egaf..." />;
   }
 
   if (loading) {
