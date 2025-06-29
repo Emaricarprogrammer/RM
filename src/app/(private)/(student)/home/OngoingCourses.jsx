@@ -22,7 +22,6 @@ export function OngoingCourses() {
         
         if (!token)
         {
-          router.push('/login');
           return;
         }
 
@@ -32,7 +31,6 @@ export function OngoingCourses() {
 
         if (!id_student)
         {
-          router.push('/login');
           return;
         }
 

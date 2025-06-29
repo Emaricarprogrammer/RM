@@ -20,7 +20,7 @@ export default function AdminHomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const router = useRouter();
-  const isAuthLoading = useUserAuth(["ADMIN"]);
+  const {loading: isAuthLoading, isAuthorized, userType} = useUserAuth(["ADMIN"]);
 
   const fetchData = async () => {
     try {
@@ -30,7 +30,6 @@ export default function AdminHomePage() {
       const token = localStorage.getItem('access');
       
       if (!token) {
-        router.push('/login');
         return;
       }
 
@@ -38,7 +37,6 @@ export default function AdminHomePage() {
       const id_admin = decodedToken.userClaims.id_admin;
 
       if (!id_admin) {
-        router.push('/');
         return;
       }
 
@@ -66,10 +64,10 @@ export default function AdminHomePage() {
   };
 
   useEffect(() => {
-    if (!isAuthLoading) {
+    if (!isAuthLoading && isAuthorized) {
       fetchData();
     }
-  }, [isAuthLoading]); // Adicionei router como dependência para evitar warnings
+  }, [isAuthLoading, isAuthorized]); // Adicionei router como dependência para evitar warnings
 
   const stats = [
     {
@@ -152,6 +150,10 @@ export default function AdminHomePage() {
 
   if (isAuthLoading) {
       return <Loading message=" Academia Egaf..." />;
+  }
+  if (!isAuthorized)
+  {
+    return
   }
 
   if (loading) {

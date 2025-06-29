@@ -4,6 +4,7 @@ import { BookOpen } from "lucide-react"; // Ou importe seu próprio logo
 
 export const Loading = ({ message = "Carregando..." }) => {
   return (
+    
     <div className="fixed inset-0 flex justify-center items-center bg-white z-50">
       <div className="flex items-center gap-4">
         {/* Logo - Substitua pelo seu componente de logo */}

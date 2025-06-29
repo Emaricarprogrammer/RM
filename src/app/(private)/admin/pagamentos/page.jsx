@@ -59,13 +59,17 @@ export default function PaymentApprovalPage() {
   const [activeTab, setActiveTab] = useState("PENDING");
   const [lastUpdate, setLastUpdate] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const isAuthLoading = useUserAuth(["ADMIN"])
+  const {loading: isAuthLoading, isAuthorized, userType} = useUserAuth(["ADMIN"])
   
   const token = localStorage.getItem("access");
 
   // Função para buscar matrículas
   const fetchEnrollments = async () => {
     try {
+      if (!token)
+      {
+        return
+      }
       const response = await Enrrols(token);
       
       if (response.success) {
@@ -106,13 +110,13 @@ export default function PaymentApprovalPage() {
   // Configurar atualização automática a cada 1 minuto
   useEffect(() => {
     const intervalId = setInterval(() => {
-      if (!isDetailModalOpen && !isConfirmationModalOpen && !isAuthLoading) {
+      if (!isDetailModalOpen && !isConfirmationModalOpen && !isAuthLoading && isAuthorized) {
         fetchEnrollments();
       }
     }, 60000); // 1 minuto
 
     return () => clearInterval(intervalId);
-  }, [token, isDetailModalOpen, isConfirmationModalOpen]);
+  }, [token, isDetailModalOpen, isConfirmationModalOpen, isAuthLoading, isAuthorized]);
 
   // Filtrar pagamentos por termo de busca e status
   const filteredPayments = enrollments.filter((payment) => {
@@ -221,11 +225,17 @@ export default function PaymentApprovalPage() {
     setIsRefreshing(true);
     fetchEnrollments();
   };
+
+  
   if (isAuthLoading)
   {
     return (
       <Loading message="Academia Egaf..."/>
     )
+  }
+  if (!isAuthorized)
+  {
+    return
   }
   if (isLoading) {
     return <Loading message="Carregando pagamentos..." />;

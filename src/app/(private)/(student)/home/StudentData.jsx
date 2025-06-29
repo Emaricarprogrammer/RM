@@ -16,8 +16,8 @@ export function StudentData() {
   const [error, setError] = useState(null);
   const router = useRouter();
   
-  // Hook de autenticação
-  const isAuthLoading = useUserAuth(["student"]);
+  // Hook de autenticação melhorado
+  const { loading: isAuthLoading, isAuthorized, userType } = useUserAuth(["student"]);
 
   // Constantes para as estatísticas
   const ICON_SIZE = 18;
@@ -43,30 +43,27 @@ export function StudentData() {
   ];
 
   useEffect(() => {
-    if (!isAuthLoading) {
+    if (!isAuthLoading && isAuthorized) {
       const fetchStudentData = async () => {
         try {
           setLoading(true);
+          setError(null);
+          
           const token = localStorage.getItem('access');
           
-          if (!token)
-          {
-            router.push('/');
-            return;
+          if (!token) {
+            throw new Error("Sessão expirada. Faça login novamente.");
           }
 
           const decodedToken = jwtDecode(token);
           const id_student = decodedToken.userClaims.id_student;
 
-          if (!id_student)
-          {
-            router.push('/');
-            return;
+          if (!id_student) {
+            throw new Error("ID do estudante não encontrado no token.");
           }
 
           const result = await MyProfile(id_student, token);
           
-
           if (result.success) {
             setStudent({
               profileImage: result.data?.profile_image || "",
@@ -88,14 +85,19 @@ export function StudentData() {
 
       fetchStudentData();
     }
-  }, [isAuthLoading]);
+  }, [isAuthLoading, isAuthorized]);
 
+  // Estados de carregamento e autorização
   if (isAuthLoading) {
-      return <Loading message=" Academia Egaf..." />;
+    return <Loading message="Academia Egaf..." />;
+  }
+
+  if (!isAuthorized) {
+    return;
   }
 
   if (loading) {
-    return <Loading message="Só mais um pouquinho, estamos montando o seu perfil..." />;
+    return <Loading message="Carregando seu perfil..." />;
   }
 
   if (error) {
@@ -103,19 +105,33 @@ export function StudentData() {
       <div className="text-white">
         <div className="bg-gradient-to-br from-blue-900 to-blue-700 py-8 md:py-24 px-8 md:px-16 drop-shadow-lg shadow-black rounded-xl text-center">
           <p className="text-red-300">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="mt-4 px-4 py-2 bg-white/10 rounded hover:bg-white/20"
-          >
-            Tentar novamente
-          </button>
+          <div className="flex justify-center gap-4 mt-6">
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-4 py-2 bg-white/10 rounded hover:bg-white/20 transition-colors"
+            >
+              Tentar novamente
+            </button>
+            <button 
+              onClick={() => router.push('/')} 
+              className="px-4 py-2 bg-blue-600/70 rounded hover:bg-blue-600 transition-colors"
+            >
+              Página inicial
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   if (!student) {
-    return null;
+    return (
+      <div className="text-white">
+        <div className="bg-gradient-to-br from-blue-900 to-blue-700 py-8 md:py-24 px-8 md:px-16 drop-shadow-lg shadow-black rounded-xl text-center">
+          <p>Não foi possível carregar os dados do estudante.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -130,6 +146,7 @@ export function StudentData() {
           <Link
             href="/editar-perfil"
             className="px-5 py-2.5 text-sm font-medium text-white bg-white/10 rounded-lg hover:bg-white/20 transition-all flex items-center gap-2 border border-white/20"
+            aria-label="Editar perfil"
           >
             Editar Perfil
           </Link>
@@ -144,6 +161,8 @@ export function StudentData() {
                 src={student.profileImage} 
                 alt={student.name}
                 className="w-32 h-32 rounded-2xl object-cover border-2 border-white/20 shadow-lg group-hover:shadow-xl transition-all"
+                width={128}
+                height={128}
               />
             ) : (
               <div className="w-32 h-32 rounded-2xl bg-white/10 backdrop-blur-md border-2 border-white/20 flex items-center justify-center mx-auto lg:mx-0 shadow-lg group-hover:shadow-xl transition-all">
@@ -170,7 +189,7 @@ export function StudentData() {
                 <div>
                   <p className="text-sm text-blue-200">Email</p>
                   <p className="text-white font-medium break-words">
-                    {student.email}
+                    {student.email || "Não informado"}
                   </p>
                 </div>
               </div>
@@ -181,7 +200,9 @@ export function StudentData() {
                 </div>
                 <div>
                   <p className="text-sm text-blue-200">Telefone</p>
-                  <p className="text-white font-medium">{student.phone}</p>
+                  <p className="text-white font-medium">
+                    {student.phone || "Não informado"}
+                  </p>
                 </div>
               </div>
             </div>

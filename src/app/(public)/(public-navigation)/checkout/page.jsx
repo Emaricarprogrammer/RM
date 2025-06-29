@@ -20,7 +20,7 @@ export default function CheckoutPage() {
   const searchParams = useSearchParams();
   const id_course = searchParams.get("id");
   const router = useRouter();
-  const isAuthLoading = useUserAuth(["student"])
+  const { loading: isAuthLoading, isAuthorized, userType } = useUserAuth(["student"]);
   
   const { course, loading: loadingCourse, error: courseError } = useCourse(id_course);
   
@@ -97,7 +97,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     const token = localStorage.getItem("access");
-    if (!isAuthLoading && token)
+    if (!isAuthLoading && token && isAuthorized)
     {
 
     try {
@@ -113,7 +113,7 @@ export default function CheckoutPage() {
       toast.error("Sessão inválida. Faça login novamente.");
       router.push('/login');
     }
-  }}, [router, checkEnrollmentStatus, isAuthLoading, accessToken]);
+  }}, [router, checkEnrollmentStatus, isAuthLoading, accessToken, isAuthorized]);
 
   useEffect(() => {
     let interval;
@@ -205,6 +205,11 @@ export default function CheckoutPage() {
   }
   if (loadingCourse) {
     return <Loading message="Carregando os detalhes..." />;
+  }
+
+  if (!isAuthorized)
+  {
+    return
   }
 
   if (!course) {

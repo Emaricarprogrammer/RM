@@ -28,7 +28,6 @@ export function InstructorsCarousel() {
        const token = localStorage.getItem('access');
         
         if (!token) {
-          router.push('/login');
           return;
         }
 
@@ -37,7 +36,6 @@ export function InstructorsCarousel() {
         const id_student = decodedToken.userClaims.id_student;
 
         if (!id_student) {
-          router.push('/login');
           return;
         }
 
