@@ -1,5 +1,5 @@
 import axios from "axios";
-const url = "http://localhost:5000/academia.egaf.ao"
+const url = "https://academia-egaf-api.onrender.com/academia.egaf.ao"
 const api = axios.create(({
     baseURL: url,
     withCredentials: true,
