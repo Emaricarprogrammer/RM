@@ -1,3 +1,4 @@
+"use client"
 import {
   Target,
   ArrowUpRight,
@@ -7,8 +8,22 @@ import {
   Lightbulb,
 } from "lucide-react";
 import Link from "next/link";
-
+import { jwtDecode } from "jwt-decode";
+import { useEffect, useState} from "react";
 export function TargetAudienceSection() {
+const [userType, setUserType] = useState(null);
+
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem("access");
+      if (token) {
+        const decoded = jwtDecode(token);
+        setUserType(decoded.userClaims?.userType || null);
+      }
+    } catch (error) {
+      console.error("Erro ao verificar token:", error);
+    }
+  }, []);
   return (
     <section className="py-24 bg-gradient-to-br from-blue-50 to-indigo-50">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
@@ -96,12 +111,13 @@ export function TargetAudienceSection() {
         </div>
 
         <div className="mt-16 text-center">
-          <Link
-            href="/criar-conta"
+            <Link
+            href={!userType ? "/criar-conta": "/cursos"}
             className="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium text-lg rounded-lg shadow-lg hover:shadow-xl transition-all"
           >
-            Quero Me Inscrever <ArrowUpRight size={20} className="ml-2" />
+            {!userType ? "Quero Me Inscrever" :"Começar agora"} <ArrowUpRight size={20} className="ml-2" />
           </Link>
+
         </div>
       </div>
     </section>

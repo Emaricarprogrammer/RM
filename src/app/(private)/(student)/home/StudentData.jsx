@@ -22,18 +22,7 @@ export function StudentData() {
   // Constantes para as estatísticas
   const ICON_SIZE = 18;
   const stats = [
-    {
-      id: 1,
-      value: 4,
-      label: "Cursos em andamento",
-      icon: <GraduationCap size={ICON_SIZE} />,
-    },
-    {
-      id: 2,
-      value: 6,
-      label: "Total de cursos",
-      icon: <GraduationCap size={ICON_SIZE} />,
-    },
+
   ];
 
   useEffect(() => {

@@ -1,7 +1,7 @@
 "use client";
 
-import { ArrowLeft, Clock, Banknote, Loader2, X, CheckCircle, AlertCircle, Mail, Phone } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { ArrowLeft, Clock, Banknote, Loader2, CheckCircle, AlertCircle, Mail, Phone } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Footer } from "@/app/_components/Footer";
@@ -15,6 +15,93 @@ import { toast, Toaster } from "react-hot-toast";
 import { MyEnrolls } from "@/api/Users/Students/myEnrolls";
 import { WatchingCourse } from "@/api/Users/Students/watchingCourse";
 import { useUserAuth } from "@/hooks/useAuth";
+import { MyCourses } from "@/api/Users/Students/myCourses";
+
+// Hook para gerenciar o status do curso
+const useCourseStatus = (courseId, idStudent, accessToken) => {
+  const [status, setStatus] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem(`course-status-${courseId}`);
+      return saved ? JSON.parse(saved) : null;
+    }
+    return null;
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const saveStatus = useCallback((newStatus) => {
+    setStatus(newStatus);
+    if (typeof window !== 'undefined') {
+      if (newStatus) {
+        sessionStorage.setItem(`course-status-${courseId}`, JSON.stringify(newStatus));
+      } else {
+        sessionStorage.removeItem(`course-status-${courseId}`);
+      }
+    }
+  }, [courseId]);
+
+  const loadCourseStatus = useCallback(async (isSilent = false) => {
+    if (!idStudent || !accessToken || !courseId) return;
+
+    try {
+      if (!isSilent) {
+        setIsLoading(true);
+      } else {
+        setIsRefreshing(true);
+      }
+      
+      const myCourses = await MyCourses(idStudent, accessToken);
+      const approvedCourse = myCourses.find(c => c.id_course === courseId);
+
+      if (approvedCourse) {
+        const newStatus = {
+          status: approvedCourse.course_status,
+          createdAt: approvedCourse.createdAt,
+          paymentProofRequired: false
+        };
+        saveStatus(newStatus);
+        return;
+      }
+
+      const enrollments = await MyEnrolls(idStudent, accessToken);
+      const enrollment = enrollments.response?.find(e => e.id_course === courseId);
+
+      if (enrollment) {
+        const newStatus = {
+          status: enrollment.status,
+          createdAt: enrollment.createdAt || new Date().toISOString(),
+          paymentProofRequired: enrollment.payment_proof_required || false
+        };
+        saveStatus(newStatus);
+      } else {
+        saveStatus(null);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar status do curso:", error);
+      saveStatus(null);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [courseId, idStudent, accessToken, saveStatus]);
+
+  const resetStatus = useCallback(() => {
+    saveStatus(null);
+  }, [saveStatus]);
+
+  useEffect(() => {
+    loadCourseStatus();
+  }, [loadCourseStatus]);
+
+  return { 
+    status, 
+    isLoading, 
+    isRefreshing,
+    refresh: loadCourseStatus, 
+    resetStatus,
+    updateStatus: saveStatus
+  };
+};
 
 export default function CheckoutPage() {
   const searchParams = useSearchParams();
@@ -25,132 +112,129 @@ export default function CheckoutPage() {
   const { course, loading: loadingCourse, error: courseError } = useCourse(id_course);
   
   const [isLoading, setIsLoading] = useState(false);
-  const [step, setStep] = useState(1);
   const [idStudent, setIdStudent] = useState(null);
-  const [error, setError] = useState(null);
-  const [enrollments, setEnrollments] = useState([]);
   const [accessToken, setAccessToken] = useState(null);
-  const [checkingStatus, setCheckingStatus] = useState(false);
+  const [error, setError] = useState(null);
   const [nextCheckIn, setNextCheckIn] = useState(0);
   const [checkCount, setCheckCount] = useState(0);
   const MAX_CHECK_ATTEMPTS = 20;
+  
+  const { 
+    status: courseStatus, 
+    isLoading: loadingStatus, 
+    isRefreshing,
+    refresh: refreshStatus, 
+    resetStatus,
+    updateStatus
+  } = useCourseStatus(id_course, idStudent, accessToken);
+  
+  const checkingInterval = useRef(null);
+  const countdownInterval = useRef(null);
+  const isMounted = useRef(false);
 
-  useEffect(() => {
-    const savedStep = sessionStorage.getItem(`checkout-step-${id_course}`);
-    if (savedStep) {
-      setStep(parseInt(savedStep, 10));
-    }
-  }, [id_course]);
-
-  useEffect(() => {
-    if (id_course && step !== 1) {
-      sessionStorage.setItem(`checkout-step-${id_course}`, step.toString());
-    }
-  }, [step, id_course]);
-
-  const checkEnrollmentStatus = useCallback(async () => {
-    if (!idStudent || !accessToken || !id_course) return false;
+  const getCurrentStep = useCallback(() => {
+    if (loadingStatus) return 0;
+    if (!courseStatus) return 1;
     
-    setCheckingStatus(true);
-    try {
-      const response = await MyEnrolls(idStudent, accessToken);
-      const enrollmentsData = response.response || [];
-      
-      if (Array.isArray(enrollmentsData)) {
-        setEnrollments(enrollmentsData);
-        
-        const enrollment = enrollmentsData.find(
-          (enroll) => enroll.id_course === id_course
-        );
-        
-        if (enrollment) {
-          if (enrollment.status === 'APPROVED') {
-            setStep(3);
-            toast.success("Matrícula aprovada com sucesso!");
-            if (course?.course_type !== 'PRESENTIAL')
-            {
-              await WatchingCourse(idStudent, id_course, accessToken);
-            }
-            return true;
-          } else if (enrollment.status === 'PENDING') {
-            setStep(2);
-            return true;
-          } else if (enrollment.status === 'REJECTED') {
-            setStep(4);
-            toast.error("Matrícula rejeitada. Por favor, entre em contato com o suporte.");
-            return true;
+    switch(courseStatus.status) {
+      case 'PENDING': return 2;
+      case 'APPROVED': return 3;
+      case 'REJECTED': return 4;
+      case 'PRESENTIAL_REQUESTED': return 5;
+      default: return 1;
+    }
+  }, [courseStatus, loadingStatus]);
+
+  const [step, setStep] = useState(getCurrentStep());
+
+  useEffect(() => {
+    if (isMounted.current) {
+      setStep(getCurrentStep());
+    } else {
+      isMounted.current = true;
+    }
+  }, [getCurrentStep]);
+
+  useEffect(() => {
+    const initializeStudent = async () => {
+      const token = localStorage.getItem("access");
+      if (!isAuthLoading && token && isAuthorized) {
+        try {
+          const decoded = jwtDecode(token);
+          if (!decoded.userClaims.id_student) {
+            throw new Error("Token inválido");
           }
+          setIdStudent(decoded.userClaims.id_student);
+          setAccessToken(token);
+        } catch (error) {
+          console.error("Erro ao decodificar o token:", error);
+          toast.error("Sessão inválida. Faça login novamente.");
+          router.push('/login');
         }
       }
-      return false;
-    } catch (error) {
-      console.error("Erro ao verificar status da matrícula:", error);
-      if (error.response?.status === 401) {
-        toast.error("Sessão expirada. Por favor, faça login novamente.");
-        router.push('/login');
-      }
-      return false;
-    } finally {
-      setCheckingStatus(false);
+    };
+
+    initializeStudent();
+  }, [isAuthLoading, isAuthorized, router]);
+
+  const clearIntervals = useCallback(() => {
+    if (checkingInterval.current) {
+      clearInterval(checkingInterval.current);
+      checkingInterval.current = null;
     }
-  }, [idStudent, accessToken, id_course, router]);
+    if (countdownInterval.current) {
+      clearInterval(countdownInterval.current);
+      countdownInterval.current = null;
+    }
+  }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem("access");
-    if (!isAuthLoading && token && isAuthorized)
-    {
-
-    try {
-      const decoded = jwtDecode(token);
-      if (!decoded.userClaims.id_student) {
-        throw new Error("Token inválido");
-      }
-      setIdStudent(decoded.userClaims.id_student);
-      setAccessToken(token);
-      checkEnrollmentStatus();
-    } catch (error) {
-      console.error("Erro ao decodificar o token:", error);
-      toast.error("Sessão inválida. Faça login novamente.");
-      router.push('/login');
-    }
-  }}, [router, checkEnrollmentStatus, isAuthLoading, accessToken, isAuthorized]);
-
-  useEffect(() => {
-    let interval;
-    let timeout;
-    
-    const startChecking = () => {
-      checkEnrollmentStatus();
+    const checkEnrollmentStatus = async () => {
+      if (!idStudent || !accessToken || !id_course) return;
       
-      interval = setInterval(async () => {
-        setNextCheckIn(30);
-        const found = await checkEnrollmentStatus();
+      try {
+        await refreshStatus(true);
         setCheckCount(prev => prev + 1);
         
-        if (found || checkCount >= MAX_CHECK_ATTEMPTS) {
-          clearInterval(interval);
+        if (courseStatus?.status !== 'PENDING' || checkCount >= MAX_CHECK_ATTEMPTS) {
+          clearIntervals();
           if (checkCount >= MAX_CHECK_ATTEMPTS) {
-            toast("Verificação automática encerrada após várias tentativas. Por favor, contate o suporte.", { icon: "⚠️" });
+            toast("Verificação automática encerrada. Contate o suporte.", { icon: "⚠️" });
           }
         }
-      }, 30000);
+      } catch (error) {
+        console.error("Erro ao verificar status da matrícula:", error);
+        if (error.response?.status === 401) {
+          toast.error("Sessão expirada. Por favor, faça login novamente.");
+          router.push('/login');
+        }
+      }
+    };
+
+    const startPeriodicCheck = () => {
+      clearIntervals();
       
-      timeout = setInterval(() => {
-        setNextCheckIn(prev => (prev > 0 ? prev - 1 : 0));
+      checkingInterval.current = setInterval(checkEnrollmentStatus, 30000);
+      
+      countdownInterval.current = setInterval(() => {
+        setNextCheckIn(prev => (prev > 0 ? prev - 1 : 30));
       }, 1000);
     };
-    
-    if (step === 2 && idStudent && accessToken && course?.course_type !== 'PRESENTIAL') {
-      startChecking();
+
+    if (step === 2 && course?.course_type !== 'PRESENTIAL') {
+      setNextCheckIn(30);
+      startPeriodicCheck();
     }
-    
-    return () => {
-      if (interval) clearInterval(interval);
-      if (timeout) clearInterval(timeout);
-    };
-  }, [step, idStudent, accessToken, checkEnrollmentStatus, checkCount, course?.course_type]);
+
+    return clearIntervals;
+  }, [step, idStudent, accessToken, checkCount, course?.course_type, clearIntervals, courseStatus, refreshStatus, router]);
 
   const handleConfirm = async () => {
+    if (courseStatus && (courseStatus.status === 'APPROVED' || courseStatus.status === 'REJECTED')) {
+      toast.error("Esta matrícula já foi processada");
+      return;
+    }
+
     if (!idStudent) {
       toast.error("Por favor, faça login para continuar");
       router.push('/login');
@@ -162,6 +246,8 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (isLoading) return;
+
     setIsLoading(true);
     setError(null);
     setCheckCount(0);
@@ -170,12 +256,17 @@ export default function CheckoutPage() {
       const response = await BuyCourse(idStudent, id_course);
       
       if (response.success) {
+        const newStatus = {
+          status: course?.course_type === 'PRESENTIAL' ? 'PRESENTIAL_REQUESTED' : 'PENDING',
+          createdAt: new Date().toISOString(),
+          paymentProofRequired: course?.course_type !== 'PRESENTIAL'
+        };
+        updateStatus(newStatus);
+
         if (course?.course_type === 'PRESENTIAL') {
-          setStep(5); // Special step for in-person courses
+          toast.success("Solicitação de matrícula enviada com sucesso!");
         } else {
-          setStep(2);
           toast.success("Compra realizada com sucesso! Aguarde a confirmação.");
-          await checkEnrollmentStatus();
         }
         localStorage.removeItem('cart');
       } else {
@@ -191,22 +282,18 @@ export default function CheckoutPage() {
     }
   };
 
-  const handleCancel = () => {
-    setStep(1);
-    sessionStorage.removeItem(`checkout-step-${id_course}`);
-    toast("Compra cancelada", { icon: "❌" });
+  const handleTryAgain = () => {
+    resetStatus();
   };
 
-  if (isAuthLoading)
-  {
-    return (
-      <Loading message="Academia Egaf..."/>
-    )
+  if (isAuthLoading || loadingStatus) {
+    return <Loading message="Academia Egaf..."/>;
   }
-    if (!isAuthorized)
-  {
+  
+  if (!isAuthorized) {
     return <NotFoundPage message="Desculpe, mas não conseguimos encontrar este curso!" />;
   }
+  
   if (loadingCourse) {
     return <Loading message="Carregando os detalhes..." />;
   }
@@ -214,8 +301,6 @@ export default function CheckoutPage() {
   if (!course) {
     return <NotFoundPage message="Desculpe, mas não conseguimos encontrar este curso!" />;
   }
-
-  const courseEnrollment = enrollments.find(enroll => enroll.id_course === id_course);
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
@@ -232,11 +317,25 @@ export default function CheckoutPage() {
 
           <div className="flex flex-col lg:flex-row gap-8">
             <div className="lg:w-2/3">
-              <div className="bg-white rounded-lg shadow-lg p-6 mb-6 border border-gray-100">
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6 border border-gray-100 relative">
+                {isRefreshing && (
+                  <div className="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center z-10 rounded-lg">
+                    <Loader2 className="animate-spin h-8 w-8 text-primary" />
+                  </div>
+                )}
+                
                 <h1 className="text-2xl font-bold text-primary mb-6">
                   Finalizar Compra
                 </h1>
 
+                {/* Step 0: Carregando */}
+                {step === 0 && (
+                  <div className="flex justify-center items-center h-40">
+                    <Loader2 className="animate-spin h-8 w-8 text-primary" />
+                  </div>
+                )}
+
+                {/* Step 1: Método de pagamento */}
                 {step === 1 && (
                   <div className="space-y-6">
                     <div>
@@ -334,15 +433,12 @@ export default function CheckoutPage() {
                   </div>
                 )}
 
+                {/* Step 2: Aguardando confirmação */}
                 {step === 2 && (
                   <div className="space-y-6">
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
                       <div className="flex justify-center mb-4">
-                        {checkingStatus ? (
-                          <Loader2 className="h-16 w-16 text-blue-500 animate-spin" />
-                        ) : (
-                          <Clock className="h-16 w-16 text-blue-500" />
-                        )}
+                        <Clock className="h-16 w-16 text-blue-500" />
                       </div>
                       <h3 className="text-2xl font-bold text-blue-800">
                         Aguardando Confirmação
@@ -351,78 +447,81 @@ export default function CheckoutPage() {
                         Assim que confirmarmos o recebimento do pagamento, seu
                         acesso será liberado automaticamente.
                       </p>
-                      {courseEnrollment?.createdAt && (
+                      {courseStatus?.createdAt && (
                         <p className="text-sm text-gray-500 mt-2">
-                          Solicitação enviada em: {courseEnrollment.createdAt}
+                          Solicitação enviada em: {new Date(courseStatus.createdAt).toLocaleString()}
                         </p>
                       )}
-                      <p className="text-sm text-gray-500 mt-4">
-                        Envie o comprovativo para{" "}
-                        <strong>pagamentos@academia.com</strong> para agilizar o
-                        processo.
-                      </p>
+                      {courseStatus?.paymentProofRequired && (
+                        <p className="text-sm text-gray-500 mt-4">
+                          Envie o comprovativo para{" "}
+                          <strong>pagamentos@academia.com</strong> para agilizar o
+                          processo.
+                        </p>
+                      )}
 
                       {nextCheckIn > 0 && (
                         <p className="text-sm text-blue-600 mt-2">
                           Próxima verificação em: {nextCheckIn}s
                         </p>
                       )}
-
-                      <div className="mt-6">
-                        <button
-                          onClick={handleCancel}
-                          disabled={checkingStatus}
-                          className={`inline-flex items-center bg-white border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none transition-colors ${
-                            checkingStatus ? "opacity-50 cursor-not-allowed" : ""
-                          }`}
-                        >
-                          <X className="w-5 h-5 mr-2" />
-                          Cancelar
-                        </button>
-                      </div>
                     </div>
                   </div>
                 )}
 
+                {/* Step 3: Matrícula confirmada */}
                 {step === 3 && (
                   <div className="space-y-6">
                     <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
                       <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
                       <h3 className="text-2xl font-bold text-green-800">
                         {course.course_type === 'PRESENTIAL' ? 'Matrícula Confirmada!' : 'Matrícula Confirmada!'}
-                        </h3>
-                        <p className="text-gray-600">
-                          {course.course_type === 'PRESENTIAL' 
+                      </h3>
+                      <p className="text-gray-600">
+                        {course.course_type === 'PRESENTIAL' 
                           ? 'Sua matrícula neste curso presencial foi confirmada. Entraremos em contato com mais informações.'
                           : 'Sua matrícula neste curso foi aprovada e seu acesso está liberado.'}
-                          </p>
-                          <div className="mt-6">
-                            {course.course_type === 'PRESENTIAL' ? (
-                              <div className="space-y-4">
-                                <div className="bg-white p-4 rounded-lg border border-gray-200 text-left">
-                                  <h4 className="font-bold text-lg mb-2">Informações de Contato</h4>
-                                  <div className="flex items-center mb-2">
-                                    <Mail className="w-5 h-5 mr-2 text-blue-600" />
-                                    <span>matriculas@academia.com</span>
-                                    </div>
-                                    <div className="flex items-center">
-                                      <Phone className="w-5 h-5 mr-2 text-blue-600" />
-                                      <span>+244 123 456 789</span>
-                                      </div></div>
-                                      <Link
-                                      href="/cursos"
-                                      className="inline-flex items-center bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md shadow-sm transition-colors"
-                                      >
-                                        Ver Outros Cursos</Link>
-                                        </div>
-                                        ) : (<Link
-                                          href={`/assistir-curso?id=${id_course}`}
-                                          className="inline-flex items-center bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md shadow-sm transition-colors">
-                                            Acessar Curso
-                                            </Link>
-                                          )}</div>
-                                          </div>
-                                          </div>)}
+                      </p>
+                      {courseStatus?.createdAt && (
+                        <p className="text-sm text-gray-500 mt-2">
+                          Confirmado em: {new Date(courseStatus.createdAt).toLocaleString()}
+                        </p>
+                      )}
+                      <div className="mt-6">
+                        {course.course_type === 'PRESENTIAL' ? (
+                          <div className="space-y-4">
+                            <div className="bg-white p-4 rounded-lg border border-gray-200 text-left">
+                              <h4 className="font-bold text-lg mb-2">Informações de Contato</h4>
+                              <div className="flex items-center mb-2">
+                                <Mail className="w-5 h-5 mr-2 text-blue-600" />
+                                <span>matriculas@academia.com</span>
+                              </div>
+                              <div className="flex items-center">
+                                <Phone className="w-5 h-5 mr-2 text-blue-600" />
+                                <span>+244 123 456 789</span>
+                              </div>
+                            </div>
+                            <Link
+                              href="/cursos"
+                              className="inline-flex items-center bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md shadow-sm transition-colors"
+                            >
+                              Ver Outros Cursos
+                            </Link>
+                          </div>
+                        ) : (
+                          <Link
+                            href={`/assistir-curso?id=${id_course}`}
+                            className="inline-flex items-center bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md shadow-sm transition-colors"
+                          >
+                            Acessar Curso
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 4: Matrícula rejeitada */}
                 {step === 4 && (
                   <div className="space-y-6">
                     <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
@@ -433,10 +532,15 @@ export default function CheckoutPage() {
                       <p className="text-gray-600">
                         Sua matrícula não pôde ser confirmada. Por favor, verifique o comprovante enviado ou entre em contato com o suporte.
                       </p>
+                      {courseStatus?.createdAt && (
+                        <p className="text-sm text-gray-500 mt-2">
+                          Rejeitado em: {new Date(courseStatus.createdAt).toLocaleString()}
+                        </p>
+                      )}
 
                       <div className="mt-6 space-x-4">
                         <button
-                          onClick={() => setStep(1)}
+                          onClick={handleTryAgain}
                           className="inline-flex items-center bg-white border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none transition-colors"
                         >
                           Tentar Novamente
@@ -452,6 +556,7 @@ export default function CheckoutPage() {
                   </div>
                 )}
 
+                {/* Step 5: Matrícula presencial solicitada */}
                 {step === 5 && (
                   <div className="space-y-6">
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
@@ -462,6 +567,11 @@ export default function CheckoutPage() {
                       <p className="text-gray-600">
                         Para cursos presenciais, entre em contato conosco para finalizar sua matrícula.
                       </p>
+                      {courseStatus?.createdAt && (
+                        <p className="text-sm text-gray-500 mt-2">
+                          Solicitado em: {new Date(courseStatus.createdAt).toLocaleString()}
+                        </p>
+                      )}
 
                       <div className="mt-6 space-y-4">
                         <div className="bg-white p-4 rounded-lg border border-gray-200 text-left">
@@ -491,6 +601,7 @@ export default function CheckoutPage() {
               </div>
             </div>
 
+            {/* Resumo do pedido */}
             <div className="lg:w-1/3">
               <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100 sticky top-4">
                 <h2 className="text-xl font-bold text-primary mb-4">
@@ -521,7 +632,8 @@ export default function CheckoutPage() {
                   <span>{course.price.toLocaleString("pt-PT")} Kz</span>
                 </div>
 
-                {(step === 1 || step === 2) && course.course_type !== 'PRESENTIAL' && (
+                {/* Mensagens de status */}
+                {step === 1 && course.course_type !== 'PRESENTIAL' && (
                   <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                     <h4 className="font-medium text-yellow-800 mb-2">
                       Importante
@@ -534,13 +646,13 @@ export default function CheckoutPage() {
                   </div>
                 )}
 
-                {step === 3 && courseEnrollment && (
+                {step === 3 && courseStatus && (
                   <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
                     <h4 className="font-medium text-green-800 mb-2">
                       Acesso Liberado
                     </h4>
                     <p className="text-sm text-green-700">
-                      Sua matrícula foi confirmada em: {courseEnrollment.updatedAt}
+                      Sua matrícula foi confirmada em: {new Date(courseStatus.createdAt).toLocaleString()}
                     </p>
                   </div>
                 )}

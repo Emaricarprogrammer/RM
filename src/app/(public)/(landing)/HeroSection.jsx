@@ -1,7 +1,24 @@
+"use client"
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { jwtDecode } from "jwt-decode";
+import { useEffect, useState} from "react";
 
 export function HeroSection() {
+const [userType, setUserType] = useState(null);
+
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem("access");
+      if (token) {
+        const decoded = jwtDecode(token);
+        setUserType(decoded.userClaims?.userType || null);
+      }
+    } catch (error) {
+      console.error("Erro ao verificar token:", error);
+    }
+  }, []);
+
   return (
     <section className="relative w-full h-[95vh] min-h-[740px] flex justify-center items-center bg-zinc-500 bg-hero bg-cover bg-no-repeat bg-center bg-blend-multiply">
       <div className="absolute inset-0 bg-black/40"></div>
@@ -21,8 +38,9 @@ export function HeroSection() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto justify-center">
-          <Link
-            href="/criar-conta"
+          
+            <Link
+            href={!userType ? "/criar-conta": "/cursos"}
             className="px-8 py-4 bg-blue-700 hover:bg-blue-800 rounded-lg shadow-lg text-white font-medium text-lg flex items-center justify-center gap-2 transition-all"
           >
             Comece Agora <ArrowRight size={20} />

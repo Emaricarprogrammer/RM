@@ -280,7 +280,7 @@ export default function CourseDetailPage() {
                 /* Botão de compra para estudantes */
                 userType === 'student' && (
                   <Link
-                    href={`/checkout?courseId=${course.title
+                    href={`/checkout?id=${course.id_course
                       .toLowerCase()
                       .replace(/\s+/g, "-")}`}
                     className="mt-6 block w-full bg-white hover:bg-gray-100 text-blue-800 font-medium py-3 px-4 rounded-md transition-colors text-center"
@@ -292,6 +292,8 @@ export default function CourseDetailPage() {
             </div>
 
             {/* Módulos */}
+
+            {course.course_type === "ONLINE" ?
             <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100">
               <div className="flex justify-between items-center px-6 py-4 bg-gradient-to-br from-blue-900 to-blue-700">
                 <h2 className="text-lg font-semibold text-white">
@@ -343,7 +345,7 @@ export default function CourseDetailPage() {
                   </div>
                 ))}
               </div>
-            </div>
+            </div>: ""}
           </div>
 
           {/* Instrutor - Visível apenas em mobile */}
