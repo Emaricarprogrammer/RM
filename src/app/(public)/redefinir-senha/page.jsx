@@ -1,33 +1,19 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { ForgotPassword, ResetPassword } from "@/api/Users/forgotPassword";
+import { Loader2 } from "lucide-react";
 
 export default function ResetPasswordPage() {
-  return (
-    <Suspense fallback={<LoadingFallback />}>
-      <ResetPasswordContent />
-    </Suspense>
-  );
-}
-
-function LoadingFallback() {
-  return (
-    <div className="flex items-center justify-center h-screen">
-      <Loader2 className="animate-spin h-8 w-8 text-blue-800" />
-    </div>
-  );
-}
-
-function ResetPasswordContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   
+  // Captura o token da URL de forma segura
   const token = searchParams ? searchParams.get("auth") : null;
 
   const [email, setEmail] = useState("");
@@ -165,20 +151,20 @@ function ResetPasswordContent() {
                 />
               </div>
 
-              <button
-                type="submit"
-                className="py-4 px-6 bg-gradient-to-br from-blue-900 to-blue-700 rounded shadow font-medium text-white text-sm sm:text-base hover:opacity-90 transition-opacity flex items-center justify-center"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="animate-spin mr-2 h-4 w-4" />
-                    Enviando...
-                  </>
-                ) : (
-                  "Redefinir senha"
-                )}
-              </button>
+      <button
+        type="submit"
+        className="py-4 px-6 bg-gradient-to-br from-blue-900 to-blue-700 rounded shadow font-medium text-white text-sm sm:text-base hover:opacity-90 transition-opacity flex items-center justify-center"
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="animate-spin mr-2 h-4 w-4" />
+            Enviando...
+          </>
+        ) : (
+          "Redefinir senha"
+        )}
+      </button>
             </form>
           ) : (
             <form
@@ -237,20 +223,20 @@ function ResetPasswordContent() {
                 </div>
               </div>
 
-              <button
-                type="submit"
-                className="py-4 px-6 bg-gradient-to-br from-blue-900 to-blue-700 rounded shadow font-medium text-white text-sm sm:text-base hover:opacity-90 transition-opacity flex items-center justify-center"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="animate-spin mr-2 h-4 w-4" />
-                    Enviando...
-                  </>
-                ) : (
-                  "Redefinir senha"
-                )}
-              </button>
+      <button
+        type="submit"
+        className="py-4 px-6 bg-gradient-to-br from-blue-900 to-blue-700 rounded shadow font-medium text-white text-sm sm:text-base hover:opacity-90 transition-opacity flex items-center justify-center"
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="animate-spin mr-2 h-4 w-4" />
+            Enviando...
+          </>
+        ) : (
+          "Redefinir senha"
+        )}
+      </button>
             </form>
           )}
 
