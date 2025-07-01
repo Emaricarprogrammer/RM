@@ -13,7 +13,7 @@ export function EditInstructorForm({ initialValues = {}, instructorId }) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const token = typeof window !== 'undefined' ? localStorage.getItem("access") : null;
-  const isAuthLoading = useUserAuth(["ADMIN"])
+  const {loading: isAuthLoading} = useUserAuth(["ADMIN"])
   if (!token) {
     if (typeof window !== 'undefined') {
       router.push("/");

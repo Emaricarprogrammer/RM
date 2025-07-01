@@ -24,7 +24,7 @@ export function CourseForm() {
     reset,
   } = useCourseForm();
   
-  const isAuthLoading = useUserAuth(["ADMIN"]);
+  const {loading: isAuthLoading, isAuthorized} = useUserAuth(["ADMIN"]);
 
   // Efeito para mostrar notificações
   useEffect(() => {
@@ -49,8 +49,14 @@ export function CourseForm() {
     }
   }, [submitStatus, router]); // Adicione router às dependências
 
+
   if (isAuthLoading) {
     return <Loading message="Academia Egaf..." />;
+  }
+
+  if (!isAuthorized)
+  {
+    return 
   }
 
   const handleReset = () => {

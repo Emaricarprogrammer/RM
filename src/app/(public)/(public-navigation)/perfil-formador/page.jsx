@@ -223,7 +223,7 @@ export default function InstructorProfilePage() {
                                 {course.title}
                               </h3>
                               <span className="text-xl font-bold bg-gradient-to-br from-blue-900 to-blue-700 bg-clip-text text-transparent">
-                                {formatPrice(course.price)}
+                                {course.price.toLocaleString("pt-PT", { minimumFractionDigits: 2 })}
                               </span>
                             </div>
 

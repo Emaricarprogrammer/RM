@@ -12,6 +12,7 @@ export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [userType, setUserType] = useState(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -45,8 +46,16 @@ export function Navbar() {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("access");
-    router.push("/");
+    setIsLoggingOut(true);
+    try {
+      localStorage.removeItem("access");
+      setTimeout(() => {
+        router.push("/");
+      }, 1000);
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+      router.push("/");
+    }
   };
 
   // Links para Admin
@@ -95,6 +104,11 @@ export function Navbar() {
   {
     
     return <Loading message="Seja bem-vindo a Academia Egaf..."/>;
+  }
+
+  if (isLoggingOut)
+  {
+    return <Loading message="Agradecemos a sua visita 😉, volte sempre..." />;
   }
 
   // Define os links principais baseados no tipo de usuário

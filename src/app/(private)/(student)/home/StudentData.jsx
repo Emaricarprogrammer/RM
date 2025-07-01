@@ -30,12 +30,6 @@ export function StudentData() {
     },
     {
       id: 2,
-      value: 2,
-      label: "Cursos concluídos",
-      icon: <GraduationCap size={ICON_SIZE} />,
-    },
-    {
-      id: 3,
       value: 6,
       label: "Total de cursos",
       icon: <GraduationCap size={ICON_SIZE} />,

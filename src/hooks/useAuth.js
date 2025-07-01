@@ -3,11 +3,9 @@ import { useRouter } from "next/navigation";
 import { getUserType } from "@/api/Authorization/getUserType";
 
 function useUserAuth(allowedUsers = []) {
-  const [authStatus, setAuthStatus] = useState({
-    loading: true,
-    isAuthorized: false,
-    userType: null,
-  });
+  const [loading, setLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [userType, setUserType] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -16,31 +14,24 @@ function useUserAuth(allowedUsers = []) {
     async function checkAuth() {
       try {
         const user = await getUserType();
-        
+
         if (!isMounted) return;
-        
-        // Verifica se o usuário está autenticado
+
         const usersAuth = ["ADMIN", "SUPER_ADMIN", "student"];
         if (!usersAuth.includes(user)) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          router.push("/"); // Melhor redirecionar para login
+          router.push("/");
           return;
         }
 
-        // Verifica se o usuário tem permissão para esta página
         if (allowedUsers.length > 0 && !allowedUsers.includes(user)) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          router.push("/"); // Página de não autorizado
+          router.push("/");
           return;
         }
 
-        // Se passou nas verificações
         if (isMounted) {
-          setAuthStatus({
-            loading: false,
-            isAuthorized: true,
-            userType: user,
-          });
+          setUserType(user);
+          setIsAuthorized(true);
+          setLoading(false);
         }
       } catch (error) {
         console.error("Auth error:", error);
@@ -57,7 +48,7 @@ function useUserAuth(allowedUsers = []) {
     };
   }, [allowedUsers, router]);
 
-  return authStatus; // Agora retorna o objeto completo
+  return { loading, isAuthorized, userType };
 }
 
 export { useUserAuth };

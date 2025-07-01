@@ -32,7 +32,7 @@ export default function InstructorProfilePage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const coursesPerPage = 3;
   const router = useRouter()
-  const isAuthLoading = useUserAuth(["ADMIN"])
+  const {loading: isAuthLoading} = useUserAuth(["ADMIN"])
 
   const searchParams = useSearchParams();
   const id_instructor = searchParams.get('id');

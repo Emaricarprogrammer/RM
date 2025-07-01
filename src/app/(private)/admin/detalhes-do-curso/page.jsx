@@ -38,7 +38,7 @@ export default function CourseDetailPage() {
   const router = useRouter();
   const id_course = searchParams.get('id');
   const { course, loading, mutate } = useCourse(id_course);
-  const isAuthLoading = useUserAuth(["ADMIN"])
+  const {loading: isAuthLoading} = useUserAuth(["ADMIN"])
 
   useEffect(() => {
     const token = localStorage.getItem('access');
@@ -238,7 +238,7 @@ export default function CourseDetailPage() {
 
                 <li className="flex items-center">
                   <Calendar className="w-5 h-5 mr-3" />
-                  <span>Lançado em {formatDate(course.createdAt)}</span>
+                  <span>Lançado em {course.createdAt}</span>
                 </li>
 
                 {/* Botão de gerenciar vídeos para admin */}

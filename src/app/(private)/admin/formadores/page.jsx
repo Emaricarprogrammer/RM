@@ -30,7 +30,7 @@ export default function InstructorsListPage() {
   const [error, setError] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const instructorsPerPage = 6;
-  const isAuthLoading = useUserAuth(["ADMIN"])
+  const {loading: isAuthLoading} = useUserAuth(["ADMIN"])
   const router = useRouter()
   const token = localStorage.getItem("access")
 

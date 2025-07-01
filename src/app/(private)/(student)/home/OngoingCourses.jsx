@@ -36,7 +36,6 @@ export function OngoingCourses() {
 
         // 3. Buscar cursos da API
         const coursesData = await MyCourses(id_student, token);
-        console.log(coursesData)
         
         if (coursesData && coursesData.length > 0) {
           setCourses(coursesData);
@@ -154,7 +153,7 @@ export function OngoingCourses() {
                         className="w-full py-2 bg-gradient-to-br from-blue-900 to-blue-700 hover:opacity-90 transition-opacity text-white rounded-md font-medium"
                         onClick={() => continueWatching(course.id_course)}
                       >
-                        Continuar assistindo
+                        {course.course_type === "ONLINE" ? "Ir para o curso" :"Aula presencial"}
                       </button>
                     </div>
                   </div>

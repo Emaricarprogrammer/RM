@@ -1,4 +1,4 @@
-import { InstructorForm } from "./form";
+import InstructorForm from "./form";
 
 export default function AddInstructorPage() {
   return (

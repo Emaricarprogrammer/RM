@@ -27,7 +27,7 @@ export default function CategoriesAdminPage() {
   const [loading, setLoading] = useState(true);
   const [accessToken, setAccessToken] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const isAuthLoading = useUserAuth(["ADMIN"])
+  const {loading: isAuthLoading, isAuthorized} = useUserAuth(["ADMIN"])
 
   // Obter token de acesso
   useEffect(() => {
@@ -60,14 +60,22 @@ export default function CategoriesAdminPage() {
     }
   };
   useEffect(() => {
-    if (!isAuthLoading) {
+    if (!isAuthLoading && isAuthorized) {
       fetchCategories();
     }
-    }, [isAuthLoading]);
+    }, [isAuthLoading, isAuthorized]);
   
   if (isAuthLoading)
     {
       return <Loading message=" Academia Egaf..." />;
+    }
+    if (!isAuthorized)
+    {
+        return (
+    <div className="flex items-center justify-center min-h-screen">
+      <p className="text-gray-600 text-lg">Acesso não autorizado.</p>
+    </div>
+  );
     }
 
   // Filtrar categorias

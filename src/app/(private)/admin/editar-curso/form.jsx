@@ -17,12 +17,7 @@ export function EditCourseForm({ initialValues }) {
   const [instructors, setInstructors] = useState([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const token = typeof window !== 'undefined' ? localStorage.getItem("access") : null;
-  const isAuthLoading = useUserAuth(["ADMIN"])
-
-  if (!token) {
-    router.replace("/")
-    return;
-  }
+  const {loading: isAuthLoading} = useUserAuth(["ADMIN"])
 
   const {
     register,
@@ -67,26 +62,18 @@ export function EditCourseForm({ initialValues }) {
       id_category_course_fk: initialValues.id_category_course_fk
     });
   }, [initialValues, reset]);
-
-    useEffect(() => {
-      if (!isAuthLoading) {
-        EditCourseForm();
-      }
-      }, [isAuthLoading]);
     
     if (isAuthLoading)
       {
         return <Loading message=" Academia Egaf..." />;
       }
-
   // Check for form changes
-  const hasChanges = useMemo(() => {
+  const hasChanges = () => {
     const currentValues = watch();
     return Object.keys(dirtyFields).length > 0 || 
            (currentValues.image_url !== initialValues.image_url && 
             currentValues.image_url !== "");
-  }, [watch(), dirtyFields, initialValues]);
-
+  };
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -109,7 +96,7 @@ export function EditCourseForm({ initialValues }) {
   };
 
   const onSubmit = async (data) => {
-    if (!hasChanges) {
+    if (!hasChanges()) {
       toast.error("Nenhuma alteração foi feita no formulário");
       return;
     }

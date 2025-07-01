@@ -6,13 +6,17 @@ import { CreateInstructor } from "@/api/Users/Instructors/createInstructor";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import {toast, Toaster} from "react-hot-toast";
+import { toast, Toaster } from "react-hot-toast";
 import { useUserAuth } from "@/hooks/useAuth";
 import { Loading } from "@/app/_components/Loading";
 
-export function InstructorForm() {
-  const router = useRouter();
+export default function InstructorForm() {
   const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
+
+  // Seu hook já cuida do redirecionamento
+  const { loading: isAuthLoading } = useUserAuth(["ADMIN"]);
+
   const {
     previewImage,
     handleImageChange,
@@ -24,22 +28,16 @@ export function InstructorForm() {
     setValue,
     reset,
   } = useInstructorForm();
-  const isAuthLoading = useUserAuth(["ADMIN"])
 
   useEffect(() => {
     register("image_instructor");
   }, [register]);
 
-      useEffect(() => {
-      if (!isAuthLoading) {
-        InstructorForm();
-      }
-    }, [isAuthLoading]);
-  
   if (isAuthLoading) {
-        return <Loading message=" Academia Egaf..." />;
-      }
-const onSubmit = async (data) => {
+    return <Loading message="Academa Egaf..." />;
+  }
+
+  const onSubmit = async (data) => {
     try {
       const token = localStorage.getItem("access") || "";
       const result = await CreateInstructor(data, token);
@@ -54,7 +52,7 @@ const onSubmit = async (data) => {
     } catch (error) {
       toast.error("Ocorreu um erro inesperado. Tente novamente.");
     }
-};
+  };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];

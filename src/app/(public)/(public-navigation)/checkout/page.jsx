@@ -203,13 +203,12 @@ export default function CheckoutPage() {
       <Loading message="Academia Egaf..."/>
     )
   }
+    if (!isAuthorized)
+  {
+    return <NotFoundPage message="Desculpe, mas não conseguimos encontrar este curso!" />;
+  }
   if (loadingCourse) {
     return <Loading message="Carregando os detalhes..." />;
-  }
-
-  if (!isAuthorized)
-  {
-    return
   }
 
   if (!course) {
