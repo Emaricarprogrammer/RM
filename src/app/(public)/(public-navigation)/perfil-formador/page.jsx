@@ -82,6 +82,7 @@ export default function InstructorProfilePage() {
       course.description.toLowerCase().includes(submittedSearch.toLowerCase())
   );
 
+
   const indexOfLastCourse = currentPage * coursesPerPage;
   const indexOfFirstCourse = indexOfLastCourse - coursesPerPage;
   const currentCourses = filteredCourses.slice(
@@ -89,10 +90,9 @@ export default function InstructorProfilePage() {
     indexOfLastCourse
   );
   const totalPages = Math.ceil(filteredCourses.length / coursesPerPage);
-  const totalStudents = instructor.instructors_courses.courses.reduce(
-    (sum, course) => sum + (course.total_watching || 0),
-    0
-  );
+  const totalStudents = instructor.students_watching_my_courses
+  const totalWatchingCourse = instructor.total_watching
+  
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -239,7 +239,7 @@ export default function InstructorProfilePage() {
                               <div className="flex items-center text-gray-700">
                                 <Users className="w-5 h-5 text-gray-500 mr-2" />
                                 <span>
-                                  {(course.total_watching || 0).toLocaleString("pt-BR")} alunos
+                                  {(course.total_watching.length || 0).toLocaleString("pt-BR")} alunos
                                 </span>
                               </div>
                             </div>
