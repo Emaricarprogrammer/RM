@@ -9,29 +9,26 @@ const ACCEPTED_VIDEO_TYPES = [
 ];
 
 const videoSchema = z.object({
-  title: z
-    .string()
+  title: z.string()
     .trim()
-    .min(5, { message: "O título deve ter pelo menos 5 caracteres" }),
-  description: z
-    .string()
+    .min(5, "Título deve ter pelo menos 5 caracteres")
+    .max(100, "Título muito longo (máx. 100 caracteres)"),
+  
+  description: z.string()
     .trim()
-    .min(10, { message: "A descrição deve ter pelo menos 10 caracteres" }),
-  video_file: z
-    .any()
-    .refine((file) => file?.size > 0, "O arquivo de vídeo é obrigatório")
-    .refine((file) => file?.size <= MAX_FILE_SIZE, "Tamanho máximo de 500MB")
-    .refine(
-      (file) => ACCEPTED_VIDEO_TYPES.includes(file?.type),
-      "Formatos aceitos: .mp4, .webm, .ogg, .mov"
-    ),
+    .min(10, "Descrição deve ter pelo menos 10 caracteres")
+    .max(500, "Descrição muito longa (máx. 500 caracteres)"),
+  
+  video_file: z.instanceof(File, { message: "Selecione um arquivo de vídeo" })
+    .refine(file => file.size > 0, "Arquivo não pode estar vazio")
+    .refine(file => file.size <= MAX_FILE_SIZE, `Tamanho máximo: ${MAX_FILE_SIZE/1024/1024}MB`)
+    .refine(file => ACCEPTED_VIDEO_TYPES.includes(file.type), 
+      "Formatos aceitos: MP4, WEBM, OGG, MOV")
 });
 
 export const videosSchema = z.object({
-  courseId: z.string().min(1, { message: "ID do curso é obrigatório" }),
-  courseTitle: z.string().min(1, { message: "Título do curso é obrigatório" }),
-  videos: z
-    .array(videoSchema)
-    .min(1, { message: "Adicione pelo menos um vídeo" })
-    .max(10, { message: "Máximo de 10 vídeos por vez" }),
+  id_course_fk: z.string().min(1, "ID do curso é obrigatório"),
+  videos: z.array(videoSchema)
+    .min(1, "Adicione pelo menos 1 vídeo")
+    .max(10, "Máximo de 10 vídeos por envio")
 });

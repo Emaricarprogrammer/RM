@@ -15,6 +15,7 @@ import {
   Presentation,
   Edit,
   Trash2,
+  X,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Footer } from "@/app/_components/Footer";
@@ -26,13 +27,14 @@ import { NotFoundPage } from "@/app/_components/Notfound";
 import { jwtDecode } from "jwt-decode";
 import toast from "react-hot-toast";
 import { deleteCourse } from "@/api/Courses/deleteCourse";
-import { DeleteCourseModal } from "@/app/(private)/admin/detalhes-do-curso/DeleteCourseModal";
 
 export default function CourseDetailPage() {
   const [activeModule, setActiveModule] = useState(null);
   const [userType, setUserType] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState(null);
+  const [showVideoModal, setShowVideoModal] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
   const id_course = searchParams.get('id');
@@ -94,6 +96,18 @@ export default function CourseDetailPage() {
     }
   };
 
+  const handleVideoClick = (video) => {
+    if (userType === 'admin') {
+      setSelectedVideo(video);
+      setShowVideoModal(true);
+    }
+  };
+
+  const closeVideoModal = () => {
+    setShowVideoModal(false);
+    setSelectedVideo(null);
+  };
+
   if (loading) {
     return <Loading message="Carregando os dados do curso..." />;
   }
@@ -104,24 +118,78 @@ export default function CourseDetailPage() {
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      {/* Modal de confirmação de exclusão */}
-      <DeleteCourseModal
-        isOpen={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-        onConfirm={handleDeleteConfirm}
-        courseTitle={course.title}
-        isDeleting={isDeleting}
-      />
+      {/* Modal de confirmação de exclusão nativo */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold mb-4">Confirmar exclusão</h3>
+            <p className="mb-6">Tem certeza que deseja excluir o curso "{course.title}"?</p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100"
+                disabled={isDeleting}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center"
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <span className="animate-pulse">Excluindo...</span>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Excluir
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Vídeo nativo */}
+      {showVideoModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h3 className="text-lg font-semibold">
+                {selectedVideo?.title}
+              </h3>
+              <button
+                onClick={closeVideoModal}
+                className="text-gray-500 hover:text-gray-700"
+                aria-label="Fechar modal"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            <div className="aspect-video w-full flex-1">
+              <video
+                controls
+                className="w-full h-full"
+                autoPlay
+              >
+                <source src={selectedVideo?.videoUrl} type="video/mp4" />
+                Seu navegador não suporta o elemento de vídeo.
+              </video>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="container mx-auto px-4 py-8">
         {/* Cabeçalho com botão de voltar */}
         <div className="flex justify-between items-center mb-6">
           <Link
-            href={userType === 'admin' ? "/cursos" : "/cursos"}
+            href={userType === 'admin' ? "/admin/cursos" : "/cursos"}
             className="flex items-center bg-gradient-to-br from-blue-900 to-blue-700 bg-clip-text text-transparent hover:from-blue-800 hover:to-blue-600 space-x-2"
           >
             <ArrowLeft className="w-5 h-5 text-blue-700" />
-              <span>Voltar para todos os cursos</span>
+            <span>Voltar para todos os cursos</span>
           </Link>
         </div>
 
@@ -217,7 +285,7 @@ export default function CourseDetailPage() {
                 {course.course_type === "ONLINE" && (
                   <li className="flex items-center">
                     <BookOpen className="w-5 h-5 mr-3" />
-                    <span>{`${course.modules} módulos`}</span>
+                    <span>{`${course.modules?.length || 0} módulos`}</span>
                   </li>
                 )}
 
@@ -233,11 +301,11 @@ export default function CourseDetailPage() {
 
                 <li className="flex items-center">
                   <Calendar className="w-5 h-5 mr-3" />
-                  <span>Lançado em {formatDate(course.createdAt)}</span>
+                  <span>Lançado em {course.createdAt}</span>
                 </li>
 
                 {/* Botão de gerenciar vídeos para admin */}
-                {userType === 'admin' && course.course_type === 'ONLINE' ? 
+                {userType === 'admin' && course.course_type === 'ONLINE' && (
                   <li className="pt-4 border-t border-blue-400">
                     <button
                       onClick={() => router.push(`/admin/videos/?id=${id_course}`)}
@@ -247,7 +315,7 @@ export default function CourseDetailPage() {
                       Gerenciar Vídeos
                     </button>
                   </li>
-                  : ""}
+                )}
               </ul>
 
               {/* Botões de ação para admin */}
@@ -280,9 +348,7 @@ export default function CourseDetailPage() {
                 /* Botão de compra para estudantes */
                 userType === 'student' && (
                   <Link
-                    href={`/checkout?id=${course.id_course
-                      .toLowerCase()
-                      .replace(/\s+/g, "-")}`}
+                    href={`/checkout?id=${course.id_course}`}
                     className="mt-6 block w-full bg-white hover:bg-gray-100 text-blue-800 font-medium py-3 px-4 rounded-md transition-colors text-center"
                   >
                     Comprar Curso
@@ -291,61 +357,64 @@ export default function CourseDetailPage() {
               )}
             </div>
 
-            {/* Módulos */}
+            {/* Módulos - Apenas para cursos online */}
+            {course.course_type === "ONLINE" && (
+              <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100">
+                <div className="flex justify-between items-center px-6 py-4 bg-gradient-to-br from-blue-900 to-blue-700">
+                  <h2 className="text-lg font-semibold text-white">
+                    Conteúdo do Curso ({course.modules?.length || 0} módulos)
+                  </h2>
+                </div>
 
-            {course.course_type === "ONLINE" ?
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100">
-              <div className="flex justify-between items-center px-6 py-4 bg-gradient-to-br from-blue-900 to-blue-700">
-                <h2 className="text-lg font-semibold text-white">
-                  Conteúdo do Curso
-                </h2>
-              </div>
+                <div className="divide-y divide-gray-200">
+                  {course.modules?.map((module, index) => (
+                    <div key={index}>
+                      <button
+                        className="w-full flex justify-between items-center px-6 py-4 text-left font-medium text-gray-700 hover:bg-blue-50"
+                        onClick={() => toggleModule(index)}
+                      >
+                        <span className="font-semibold block bg-gradient-to-br from-blue-900 to-blue-700 bg-clip-text text-transparent">
+                          {module.title}
+                        </span>
+                        <ChevronDown
+                          className={`w-5 h-5 transition-transform ${
+                            activeModule === index ? "rotate-180" : ""
+                          }`}
+                        />
+                      </button>
 
-              <div className="divide-y divide-gray-200">
-                {course.modules && course.modules.map((module, index) => (
-                  <div key={index}>
-                    <button
-                      className="w-full flex justify-between items-center px-6 py-4 text-left font-medium text-gray-700 hover:bg-blue-50"
-                      onClick={() => toggleModule(index)}
-                    >
-                      <span className="font-semibold block bg-gradient-to-br from-blue-900 to-blue-700 bg-clip-text text-transparent">
-                        Módulo {index + 1}: {module.title}
-                      </span>
-                      <ChevronDown
-                        className={`w-5 h-5 transition-transform ${
-                          activeModule === index ? "rotate-180" : ""
-                        }`}
-                      />
-                    </button>
-
-                    {activeModule === index && (
-                      <div className="px-6 pb-4">
-                        <ul className="space-y-2">
-                          {module.lessons && module.lessons.map((lesson, lessonIndex) => (
-                            <li
-                              key={lessonIndex}
-                              className="flex items-center justify-between py-2 px-3 rounded hover:bg-blue-50"
-                            >
-                              <div className="flex items-center">
-                                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                                  <Play className="w-3 h-3 text-blue-600" />
+                      {activeModule === index && (
+                        <div className="px-6 pb-4">
+                          <ul className="space-y-2">
+                            {module.lessons?.map((lesson, lessonIndex) => (
+                              <li
+                                key={lessonIndex}
+                                className={`flex items-center justify-between py-2 px-3 rounded ${
+                                  userType === 'admin' 
+                                    ? 'cursor-pointer hover:bg-blue-100' 
+                                    : 'hover:bg-blue-50'
+                                }`}
+                                onClick={() => handleVideoClick(lesson)}
+                              >
+                                <div className="flex items-center">
+                                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                                    <Play className="w-3 h-3 text-blue-600" />
+                                  </div>
+                                  <span className="text-gray-600">
+                                    {lesson.title}
+                                  </span>
                                 </div>
-                                <span className="text-gray-600">
-                                  {lesson.title}
-                                </span>
-                              </div>
-                              <span className="text-sm text-gray-500">
-                                {formatDuration(lesson.duration)}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                ))}
+
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>: ""}
+            )}
           </div>
 
           {/* Instrutor - Visível apenas em mobile */}
