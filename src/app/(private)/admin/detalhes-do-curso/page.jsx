@@ -42,6 +42,8 @@ export default function CourseDetailPage() {
   const { course, loading, mutate } = useCourse(id_course);
   const { loading: isAuthLoading } = useUserAuth(["ADMIN"]);
 
+  console.log(course)
+
   const toggleModule = (index) => {
     setActiveModule(activeModule === index ? null : index);
   };

@@ -3,7 +3,7 @@ import { videoAPI } from "@/api/api";
 async function DeleteVideo(id_video) {
     console.log(id_video)
     try {
-        const response = await videoAPI.delete(`/courses/video/${id_video}`);
+        const response = await videoAPI.delete(`/courses/video/delete/${id_video}`);
         
         return response.data;
     } catch (error) {

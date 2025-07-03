@@ -1,5 +1,4 @@
-"use client";
-
+"use client"
 import { useState, useEffect } from "react";
 import { Trash2, Plus, ChevronDown, Edit2, X, Folder, Film, User, ArrowLeft } from "lucide-react";
 import { Footer } from "@/app/_components/Footer";
@@ -10,6 +9,9 @@ import { Loading } from "@/app/_components/Loading";
 import { useUserAuth } from "@/hooks/useAuth";
 import { NotFoundPage } from "@/app/_components/Notfound";
 import { DeleteVideo } from "@/api/Courses/videos/deleteVideo";
+import { groupVideosIntoModules } from "@/api/Courses/videos/getModules";
+import toast from 'react-hot-toast';
+import { Toaster } from 'react-hot-toast';
 
 export default function VideosAdminPage() {
   const searchParams = useSearchParams();
@@ -25,6 +27,7 @@ export default function VideosAdminPage() {
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [currentVideoData, setCurrentVideoData] = useState(null);
   const [videoLoading, setVideoLoading] = useState(false);
+  const [modules, setModules] = useState([]);
 
   useEffect(() => {
     if (!idCurse) {
@@ -73,30 +76,15 @@ export default function VideosAdminPage() {
     }
   }, [idCurse, isAuthLoading]);
 
-  const transformVideosToModules = (videos) => {
-    if (!videos || videos.length === 0) return [];
-    
-    const modules = [];
-    const videosPerModule = 5;
-    
-    for (let i = 0; i < videos.length; i += videosPerModule) {
-      modules.push({
-        id: `module-${modules.length + 1}`,
-        title: `Módulo ${modules.length + 1}`,
-        videos: videos.slice(i, i + videosPerModule).map(video => ({
-          id: video.id_video,
-          title: video.title,
-          description: video.description || "Sem descrição",
-          createdAt: new Date(video.createdAt).toLocaleDateString(),
-          video_url: video.video_url
-        }))
-      });
+  // Atualiza os módulos quando os vídeos do curso mudam
+  useEffect(() => {
+    if (course?.course_videos) {
+      const newModules = groupVideosIntoModules(course.course_videos);
+      setModules(newModules);
+    } else {
+      setModules([]);
     }
-    
-    return modules;
-  };
-
-  const modules = course ? transformVideosToModules(course.course_videos) : [];
+  }, [course?.course_videos]);
 
   const toggleModule = (moduleId) => {
     setExpandedModules((prev) =>
@@ -107,33 +95,49 @@ export default function VideosAdminPage() {
   };
 
   const openDeleteModal = (video) => {
-    setCurrentVideo(video);
+    setCurrentVideo({
+      id: video.id,
+      title: video.title
+    });
     setIsDeleteModalOpen(true);
   };
 
   const handleDelete = async () => {
     try {
-      await DeleteVideo(currentVideo.id)
-      setCourse(prev => ({
-        ...prev,
-        course_videos: prev.course_videos.filter(v => v.id_video !== currentVideo.id),
-        total_lessons: prev.total_lessons - 1
-      }));
+      const toastId = toast.loading('Deletando vídeo...');
+      
+      await DeleteVideo(currentVideo.id);
+      
+      // Atualização otimista do estado
+      setCourse(prev => {
+        const updatedVideos = prev.course_videos.filter(v => v.id_video !== currentVideo.id);
+        return {
+          ...prev,
+          course_videos: updatedVideos,
+          total_lessons: updatedVideos.length
+        };
+      });
+
       setIsDeleteModalOpen(false);
+      toast.success('Vídeo deletado com sucesso!', { id: toastId });
+
+      window.location.reload()
+      
     } catch (error) {
       console.error("Erro ao deletar vídeo:", error);
-      alert("Erro ao deletar vídeo");
+      toast.error('Erro ao deletar vídeo');
     }
   };
 
-const handleVideoClick = (video) => {
-  setCurrentVideoData({
-    title: video.title,
-    description: video.description,
-    video_url: video.video_url
-  });
-  setVideoModalOpen(true);
-};
+  const handleVideoClick = (video) => {
+    setCurrentVideoData({
+      title: video.title,
+      description: video.description,
+      video_url: video.video_url,
+      id: video.id
+    });
+    setVideoModalOpen(true);
+  };
 
   if (isAuthLoading) {
     return <Loading message="Academia Egaf..." />;
@@ -149,16 +153,18 @@ const handleVideoClick = (video) => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
+      <Toaster position="top-center" />
+      
       {/* Header */}
       <header className="bg-white border-b border-gray-200">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <Link
-            href={`/cursos`}
-            className="flex items-center bg-gradient-to-br from-blue-900 to-blue-700 bg-clip-text text-transparent hover:from-blue-800 hover:to-blue-600 space-x-2"
+              href={`/cursos`}
+              className="flex items-center bg-gradient-to-br from-blue-900 to-blue-700 bg-clip-text text-transparent hover:from-blue-800 hover:to-blue-600 space-x-2"
             >
-            <ArrowLeft className="w-5 h-5 text-blue-700" />
-            <span>Ir todos os cursos </span>
+              <ArrowLeft className="w-5 h-5 text-blue-700" />
+              <span>Ir todos os cursos </span>
             </Link>
           </div>
         </div>
@@ -279,10 +285,10 @@ const handleVideoClick = (video) => {
               ) : (
                 <ul className="divide-y divide-gray-200">
                   {modules.map((module) => (
-                    <li key={module.id} className="hover:bg-gray-50 transition-colors">
+                    <li key={module.title} className="hover:bg-gray-50 transition-colors">
                       <div className="px-6 py-4">
                         <button
-                          onClick={() => toggleModule(module.id)}
+                          onClick={() => toggleModule(module.title)}
                           className="w-full flex justify-between items-center text-left"
                         >
                           <div className="flex items-center">
@@ -292,48 +298,53 @@ const handleVideoClick = (video) => {
                             <div>
                               <h3 className="text-base font-medium text-gray-900">{module.title}</h3>
                               <p className="text-sm text-gray-500">
-                                {module.videos.length} vídeos
+                                {module.lessons.length} vídeos
                               </p>
                             </div>
                           </div>
                           <ChevronDown
                             className={`w-5 h-5 text-gray-400 transition-transform ${
-                              expandedModules.includes(module.id) ? "rotate-180" : ""
+                              expandedModules.includes(module.title) ? "rotate-180" : ""
                             }`}
                           />
                         </button>
                       </div>
 
-                      {expandedModules.includes(module.id) && (
+                      {expandedModules.includes(module.title) && (
                         <div className="px-6 pb-4">
                           <ul className="space-y-2">
-                            {module.videos.map((video) => (
+                            {module.lessons.map((lesson) => (
                               <li
-                                key={video.id}
+                                key={lesson.id}
                                 className="group flex items-center justify-between p-3 rounded-md border border-gray-200 hover:border-blue-200 hover:bg-blue-50 transition-colors"
                               >
                                 <button 
-                                  onClick={() => handleVideoClick(video)}
+                                  onClick={() => handleVideoClick({
+                                    title: lesson.title,
+                                    description: lesson.description,
+                                    video_url: lesson.videoUrl,
+                                    id: lesson.id
+                                  })}
                                   className="flex-1 min-w-0 text-left"
                                 >
-                                  <p className="text-sm font-medium text-gray-900 truncate">{video.title}</p>
+                                  <p className="text-sm font-medium text-gray-900 truncate">{lesson.title}</p>
                                   <p className="text-xs text-gray-500 mt-1 truncate">
-                                    {video.description}
-                                  </p>
-                                  <p className="text-xs text-gray-400 mt-1">
-                                    Adicionado em {video.createdAt}
+                                    {lesson.description}
                                   </p>
                                 </button>
                                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <Link
-                                    href={`/admin/editar-video?id=${idCurse}&videoId=${video.id}`}
+                                    href={`/admin/editar-video?id=${idCurse}&videoId=${lesson.id}`}
                                     className="p-1.5 rounded-md text-gray-500 hover:text-blue-600 hover:bg-blue-100 transition-colors"
                                     title="Editar vídeo"
                                   >
                                     <Edit2 className="w-4 h-4" />
                                   </Link>
                                   <button
-                                    onClick={() => openDeleteModal(video)}
+                                    onClick={() => openDeleteModal({
+                                      id: lesson.id,
+                                      title: lesson.title
+                                    })}
                                     className="p-1.5 rounded-md text-gray-500 hover:text-red-600 hover:bg-red-100 transition-colors"
                                     title="Excluir vídeo"
                                   >

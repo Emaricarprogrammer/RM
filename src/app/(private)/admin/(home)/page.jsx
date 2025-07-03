@@ -115,14 +115,6 @@ export default function AdminHomePage() {
     },
     {
       id: 2,
-      title: "Adicionar Videos",
-      description: "Adicione videos aos cursos da plataforma",
-      icon: <PlusCircle size={24} />,
-      link: "/admin/adicionar-videos",
-      color: "bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-50",
-    },
-    {
-      id: 3,
       title: "Gerenciar Cursos",
       description: "Edite ou remova cursos existentes",
       icon: <BookText size={24} />,
@@ -130,7 +122,7 @@ export default function AdminHomePage() {
       color: "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-50",
     },
     {
-      id: 4,
+      id: 3,
       title: "Gerenciar Categorias",
       description: "Adicione ou edite categorias de cursos",
       icon: <List size={24} />,
@@ -138,7 +130,7 @@ export default function AdminHomePage() {
       color: "bg-cyan-100 text-cyan-800 border-cyan-200 hover:bg-cyan-50",
     },
     {
-      id: 5,
+      id: 4,
       title: "Adicionar Formador",
       description: "Registre um novo formador na plataforma",
       icon: <GraduationCap size={24} />,

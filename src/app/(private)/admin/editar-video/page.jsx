@@ -2,9 +2,9 @@
 import { EditVideoForm } from "./form";
 
 export default function EditVideoPage({ searchParams }) {
-  const { courseId, videoId } = searchParams;
+  const { id, videoId } = searchParams;
 
-  if (!courseId || !videoId) {
+  if (!id || !videoId) {
     return (
       <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 to-slate-200 pt-8 md:pt-10 pb-8 px-4 sm:px-6">
         <div className="max-w-[1700px] mx-auto">
@@ -31,7 +31,7 @@ export default function EditVideoPage({ searchParams }) {
               Atualize os detalhes deste vídeo
             </p>
           </div>
-          <EditVideoForm courseId={courseId} videoId={videoId} />
+          <EditVideoForm courseId={id} videoId={videoId} />
         </div>
       </div>
     </div>
