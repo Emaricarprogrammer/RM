@@ -20,6 +20,7 @@ export default function EditInstructorPage() {
       try {
         if (instructorId) {
           const data = await InstrutorProfile(instructorId);
+          console.log(data.response)
           setInstructorData(data.response);
         }
       } catch (err) {

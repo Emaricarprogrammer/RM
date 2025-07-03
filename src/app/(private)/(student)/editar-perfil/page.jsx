@@ -1,47 +1,47 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { AlertCircle, CheckCircle, Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { EditMyProfile } from "@/api/Users/Students/editProfile";
 import { MyProfile } from "@/api/Users/Students/profile";
 import toast, { Toaster } from "react-hot-toast";
 import { jwtDecode } from "jwt-decode";
 import { useUserAuth } from "@/hooks/useAuth";
 import { Loading } from "@/app/_components/Loading";
+import { useRouter } from "next/navigation";
 
 export default function EditProfile() {
-  const [isOpen, setIsOpen] = useState(false);
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
-  const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [initialData, setInitialData] = useState(null);
-  const {loading: isAuthLoading} = useUserAuth(["student"])
+  const { loading: isAuthLoading } = useUserAuth(["student"]);
   const [formData, setFormData] = useState({
     full_name: "",
     contact: "",
     email: "",
-    password: "", // Senha atual (obrigatória apenas se houver alterações)
-    newPassword: "" // Nova senha (obrigatória se senha atual for informada)
+    password: "",
+    newPassword: ""
   });
 
-  // Carrega os dados do usuário
+  // Load user data
   useEffect(() => {
     const fetchUserData = async () => {
-      if (!isAuthLoading){
+      setIsFetching(true);
       try {
         const token = localStorage.getItem('access');
         if (!token) {
-          toast.error("Ocorreu um erro");
+          toast.error("Sessão expirada. Faça login novamente.");
           return;
         }
 
         const decodedToken = jwtDecode(token);
-        const id_student = decodedToken.userClaims.id_student;
+        const id_student = decodedToken.userClaims?.id_student;
 
         if (!id_student) {
-          toast.error("Ocorreu um erro");
+          toast.error("ID do estudante não encontrado");
           return;
         }
 
@@ -61,14 +61,17 @@ export default function EditProfile() {
           toast.error(response.message || "Erro ao carregar perfil");
         }
       } catch (err) {
-        toast.error("Falha ao carregar dados");
+        console.error("Erro ao carregar dados:", err);
+        toast.error("Falha ao carregar dados do perfil");
       } finally {
         setIsFetching(false);
       }
     };
-    
-    fetchUserData();
-  }}, [isAuthLoading]);
+
+    if (!isAuthLoading) {
+      fetchUserData();
+    }
+  }, [isAuthLoading]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -78,21 +81,17 @@ export default function EditProfile() {
     }));
   };
 
-  // Validação do formulário
   const validateForm = () => {
-    // Verifica se pelo menos um campo foi alterado
     if (!hasChanges()) {
       toast.error("Nenhuma alteração foi feita");
       return false;
     }
 
-    // Se informou senha atual, nova senha é obrigatória
     if (formData.password && !formData.newPassword) {
       toast.error("Ao informar a senha atual, você deve fornecer uma nova senha");
       return false;
     }
 
-    // Se informou nova senha, senha atual é obrigatória
     if (formData.newPassword && !formData.password) {
       toast.error("Para alterar a senha, informe sua senha atual");
       return false;
@@ -101,7 +100,6 @@ export default function EditProfile() {
     return true;
   };
 
-  // Verifica se há alterações nos campos de perfil ou senha
   const hasChanges = () => {
     if (!initialData) return false;
     
@@ -114,11 +112,9 @@ export default function EditProfile() {
     );
   };
 
-  // Verifica se o formulário está em estado válido para habilitar o botão
   const isFormValid = () => {
     if (!hasChanges()) return false;
     
-    // Se informou uma senha (atual ou nova), ambas devem estar preenchidas
     if ((formData.password || formData.newPassword) && 
         !(formData.password && formData.newPassword)) {
       return false;
@@ -127,66 +123,88 @@ export default function EditProfile() {
     return true;
   };
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    
-    if (!validateForm()) return;
-    
-    try {
-      const token = localStorage.getItem('access');
-      if (!token) {
-        toast.error("Token não encontrado");
-        return;
-      }
-      
-      const decodedToken = jwtDecode(token);
-      const id_student = decodedToken.userClaims.id_student;
-
-      // Prepara os dados no formato exato que o back-end espera
-      const requestData = {
-        full_name: formData.full_name !== initialData.full_name ? formData.full_name : undefined,
-        email: formData.email !== initialData.email ? formData.email : undefined,
-        contact: formData.contact !== initialData.contact ? formData.contact : undefined,
-        password: formData.password || undefined, // Envia apenas se houver senha atual
-        newPassword: formData.newPassword || undefined // Envia apenas se houver nova senha
-      };
-
-      const result = await EditMyProfile(id_student, token, requestData);
-      
-      if (result.success) {
-        setSuccess(true);
-        setInitialData({
-          ...initialData,
-          full_name: formData.full_name,
-          contact: formData.contact,
-          email: formData.email
-        });
-        
-        toast.success("Perfil atualizado com sucesso!");
-        
-        setTimeout(() => {
-          setIsOpen(false);
-          setSuccess(false);
-          // Limpa apenas os campos de senha
-          setFormData(prev => ({ 
-            ...prev, 
-            password: "", 
-            newPassword: "" 
-          }));
-        }, 2000);
-      } else {
-        toast.error(result.message || "Erro ao atualizar");
-      }
-    } catch (err) {
-      toast.error(err.message || "Falha na atualização");
-    } finally {
-      setIsLoading(false);
+async function handleSubmit(e) {
+  e.preventDefault();
+  
+  if (!validateForm()) return;
+  
+  setIsLoading(true);
+  
+  try {
+    const token = localStorage.getItem('access');
+    if (!token) {
+      toast.error("Token não encontrado");
+      return;
     }
+    
+    const decodedToken = jwtDecode(token);
+    const id_student = decodedToken.userClaims.id_student;
+
+    // Prepara os dados apenas com as alterações
+    const requestData = {};
+    
+    // Verifica cada campo por alterações
+    if (formData.full_name !== initialData.full_name) {
+      requestData.full_name = formData.full_name;
+    }
+    
+    if (formData.contact !== initialData.contact) {
+      requestData.contact = formData.contact;
+    }
+    
+    if (formData.email !== initialData.email) {
+      requestData.email = formData.email;
+    }
+    
+    // Ajuste para os nomes de campos que o backend espera
+    if (formData.password) {
+      requestData.password = formData.password; // Alterado de current_password para password
+    }
+    
+    if (formData.newPassword) {
+      requestData.newPassword = formData.newPassword; // Mantém newPassword
+    }
+
+    // Verifica se há realmente algo para atualizar
+    if (Object.keys(requestData).length === 0) {
+      toast.error("Nenhuma alteração foi feita");
+      return;
+    }
+
+    const result = await EditMyProfile(id_student, token, requestData);
+    
+    if (result.success) {
+      toast.success(result.message || "Perfil atualizado com sucesso!");
+      setTimeout(() => router.push("/home"), 1500);
+    } else {
+      if (result.errors) {
+        Object.values(result.errors).forEach(errorMessages => {
+          errorMessages.forEach(message => toast.error(message));
+        });
+      } else {
+        toast.error(result.message || "Erro ao atualizar perfil");
+      }
+    }
+  } catch (err) {
+    toast.error("Erro inesperado ao atualizar perfil");
+    console.error("Erro no handleSubmit:", err);
+  } finally {
+    setIsLoading(false);
+  }
+}
+
+  if (isAuthLoading || isFetching) {
+    return <Loading message="Carregando seus dados..." />;
   }
 
-  if (isAuthLoading)
-  {
-    return <Loading message="Academia Egaf..."/>
+  if (!initialData) {
+    return (
+      <div className="min-h-[calc(100vh-5rem)] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500">Não foi possível carregar seus dados</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -201,7 +219,7 @@ export default function EditProfile() {
             </div>
 
             <div className="p-6 sm:p-8">
-              <form className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">
@@ -213,6 +231,7 @@ export default function EditProfile() {
                       value={formData.full_name}
                       onChange={handleChange}
                       className="w-full px-4 py-3 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-800 outline-none"
+                      required
                     />
                   </div>
 
@@ -227,6 +246,7 @@ export default function EditProfile() {
                       onChange={handleChange}
                       pattern="[0-9]{9,11}"
                       className="w-full px-4 py-3 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-800 outline-none"
+                      required
                     />
                   </div>
 
@@ -240,6 +260,7 @@ export default function EditProfile() {
                       value={formData.email}
                       onChange={handleChange}
                       className="w-full px-4 py-3 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-800 outline-none"
+                      required
                     />
                   </div>
 
@@ -292,18 +313,11 @@ export default function EditProfile() {
 
                 <div className="pt-4">
                   <button
-                    type="button"
-                    onClick={() => {
-                      if (!hasChanges()) {
-                        toast.error("Nenhuma alteração foi feita");
-                        return;
-                      }
-                      setIsOpen(true);
-                    }}
+                    type="submit"
                     className={`w-full sm:w-auto px-6 py-3 bg-gradient-to-br from-blue-900 to-blue-700 text-white font-medium rounded-md shadow-md transition-colors ${
                       !isFormValid() ? 'opacity-50 cursor-not-allowed' : 'hover:from-blue-800 hover:to-blue-600'
                     }`}
-                    disabled={!isFormValid()}
+                    disabled={!isFormValid() || isLoading}
                   >
                     {isLoading ? (
                       <Loader2 className="h-5 w-5 animate-spin mx-auto" />
@@ -316,70 +330,6 @@ export default function EditProfile() {
             </div>
           </div>
         </div>
-
-        {/* Modal de confirmação */}
-        {isOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
-            <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md mx-4">
-              {success ? (
-                <div className="text-center">
-                  <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-                    <CheckCircle className="h-6 w-6 text-green-600" />
-                  </div>
-                  <h3 className="mt-3 text-lg font-medium text-gray-900">Sucesso!</h3>
-                  <p className="mt-2 text-sm text-gray-500">Perfil atualizado.</p>
-                  <div className="mt-5">
-                    <button
-                      type="button"
-                      onClick={() => setIsOpen(false)}
-                      className="px-4 py-2 rounded-md bg-blue-800 text-white hover:bg-blue-900"
-                    >
-                      Fechar
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center mb-4">
-                    <div className="bg-blue-100 p-2 rounded-full mr-3">
-                      <AlertCircle className="h-6 w-6 text-blue-600" />
-                    </div>
-                    <h1 className="text-xl font-semibold text-gray-900">
-                      Confirmar Alterações
-                    </h1>
-                  </div>
-
-                  <p className="text-gray-600 mb-6">
-                    Tem certeza que deseja atualizar seu perfil?
-                  </p>
-
-                  <div className="flex justify-end space-x-3">
-                    <button
-                      type="button"
-                      onClick={() => setIsOpen(false)}
-                      className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
-                      disabled={isLoading}
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSubmit}
-                      className="px-4 py-2 rounded-md bg-blue-800 text-white hover:bg-blue-900 flex items-center justify-center min-w-[100px]"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        "Confirmar"
-                      )}
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        )}
       </div>
       <Toaster position="top-center" />
     </>

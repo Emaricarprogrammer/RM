@@ -151,7 +151,7 @@ export function OngoingCourses() {
                       </p>
                       <button
                         className="w-full py-2 bg-gradient-to-br from-blue-900 to-blue-700 hover:opacity-90 transition-opacity text-white rounded-md font-medium"
-                        onClick={() => continueWatching(course.id_course)}
+                        onClick={() => {course.course_type === "ONLINE" ?continueWatching(course.id_course):"#"}}
                       >
                         {course.course_type === "ONLINE" ? "Ir para o curso" :"Aula presencial"}
                       </button>

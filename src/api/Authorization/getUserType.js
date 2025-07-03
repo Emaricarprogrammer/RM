@@ -22,4 +22,26 @@ async function getUserType()
         return { success: false, message: "Erro inesperado. Tente novamente." };
     }
 }
-export { getUserType };
+
+async function getUserIdPrivate()
+{
+        try
+    {
+        const token = localStorage.getItem("access");
+        if (!token)
+        {
+            return null
+        }
+        const decodedToken = jwtDecode(token);
+        const idPrivate = decodedToken.userClaims.id_student;
+        return idPrivate;
+    }
+    catch(error){
+        console.error("Erro ao obter o tipo de usuário:", error);
+        if (error.response && error.response.data) {
+            return error.response.data;
+        }
+        return { success: false, message: "Erro inesperado. Tente novamente." };
+    }
+}
+export { getUserType, getUserIdPrivate};

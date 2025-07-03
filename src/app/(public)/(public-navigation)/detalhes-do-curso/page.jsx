@@ -27,11 +27,14 @@ import { NotFoundPage } from "@/app/_components/Notfound";
 import { jwtDecode } from "jwt-decode";
 import toast from "react-hot-toast";
 import { deleteCourse } from "@/api/Courses/deleteCourse";
+import { VerifyUserAccess } from "@/api/Courses/videos/verifyAccess";
 
 export default function CourseDetailPage() {
   const [activeModule, setActiveModule] = useState(null);
   const [userType, setUserType] = useState(null);
+  const [id_student, setIdStudent] = useState(null)
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isVerifiedSet, setIsVerified] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [showVideoModal, setShowVideoModal] = useState(false);
@@ -40,17 +43,34 @@ export default function CourseDetailPage() {
   const id_course = searchParams.get('id');
   const { course, loading } = useCourse(id_course);
 
-  useEffect(() => {
-    const token = localStorage.getItem('access');
-    if (token) {
-      try {
-        const decodedToken = jwtDecode(token);
-        setUserType(decodedToken.userClaims?.userType?.toLowerCase());
-      } catch (error) {
-        console.error("Erro ao decodificar token:", error);
+useEffect(() => {
+  const token = localStorage.getItem('access');
+  if (token) {
+    try {
+      const decodedToken = jwtDecode(token);
+      const studentId = decodedToken.userClaims?.id_student;
+      const userType = decodedToken.userClaims?.userType?.toLowerCase();
+      
+      setUserType(userType);
+      setIdStudent(studentId);
+
+      // Only verify access if we have both studentId and courseId
+      if (studentId && id_course) {
+        VerifyUserAccess(studentId, id_course)
+          .then((result) => {
+            console.log("Access verification result:", result.isVerified);
+            setIsVerified(result.isVerified);
+          })
+          .catch((error) => {
+            console.error("Verification error:", error);
+            setIsVerified(false);
+          });
       }
+    } catch (error) {
+      console.error("Token decoding error:", error);
     }
-  }, []);
+  }
+}, [id_course]); // Only depend on id_course
 
   const toggleModule = (index) => {
     setActiveModule(activeModule === index ? null : index);
@@ -346,14 +366,14 @@ export default function CourseDetailPage() {
                 </div>
               ) : (
                 /* Botão de compra para estudantes */
-                userType === 'student' && (
-                  <Link
-                    href={`/checkout?id=${course.id_course}`}
-                    className="mt-6 block w-full bg-white hover:bg-gray-100 text-blue-800 font-medium py-3 px-4 rounded-md transition-colors text-center"
+                
+                <Link
+                href={
+                  userType === "student" ? isVerifiedSet ? `/assistir-curso?id=${course.id_course}` : `/checkout?id=${course.id_course}`: "/criar-conta"}
+                  className="mt-6 block w-full bg-white hover:bg-gray-100 text-blue-800 font-medium py-3 px-4 rounded-md transition-colors text-center"
                   >
-                    Comprar Curso
-                  </Link>
-                )
+                    {userType === "student" ? (isVerifiedSet ? "Ir para as aulas" : "Comprar") : "Comprar"}
+                    </Link>
               )}
             </div>
 

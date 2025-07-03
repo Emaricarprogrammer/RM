@@ -16,8 +16,8 @@ import { MyEnrolls } from "@/api/Users/Students/myEnrolls";
 import { WatchingCourse } from "@/api/Users/Students/watchingCourse";
 import { useUserAuth } from "@/hooks/useAuth";
 import { MyCourses } from "@/api/Users/Students/myCourses";
+import dayjs from "dayjs";
 
-// Hook para gerenciar o status do curso
 const useCourseStatus = (courseId, idStudent, accessToken) => {
   const [status, setStatus] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -49,9 +49,14 @@ const useCourseStatus = (courseId, idStudent, accessToken) => {
       } else {
         setIsRefreshing(true);
       }
-      
-      const myCourses = await MyCourses(idStudent, accessToken);
+
+      const [myCourses, enrollments] = await Promise.all([
+        MyCourses(idStudent, accessToken),
+        MyEnrolls(idStudent, accessToken)
+      ]);
+
       const approvedCourse = myCourses.find(c => c.id_course === courseId);
+      const enrollment = enrollments.response?.find(e => e.id_course === courseId);
 
       if (approvedCourse) {
         const newStatus = {
@@ -59,19 +64,29 @@ const useCourseStatus = (courseId, idStudent, accessToken) => {
           createdAt: approvedCourse.createdAt,
           paymentProofRequired: false
         };
+        
+        // Se o curso foi aprovado, registrar o watching
+        if (approvedCourse.course_status === 'APPROVED') {
+          await WatchingCourse(idStudent, courseId, accessToken);
+        }
+        
         saveStatus(newStatus);
         return;
       }
-
-      const enrollments = await MyEnrolls(idStudent, accessToken);
-      const enrollment = enrollments.response?.find(e => e.id_course === courseId);
 
       if (enrollment) {
         const newStatus = {
           status: enrollment.status,
           createdAt: enrollment.createdAt || new Date().toISOString(),
+          updatedAt: enrollment.updatedAt,
           paymentProofRequired: enrollment.payment_proof_required || false
         };
+        
+        // Se a matrícula foi aprovada, registrar o watching
+        if (enrollment.status === 'APPROVED') {
+          await WatchingCourse(idStudent, courseId, accessToken);
+        }
+        
         saveStatus(newStatus);
       } else {
         saveStatus(null);
@@ -258,7 +273,7 @@ export default function CheckoutPage() {
       if (response.success) {
         const newStatus = {
           status: course?.course_type === 'PRESENTIAL' ? 'PRESENTIAL_REQUESTED' : 'PENDING',
-          createdAt: new Date().toISOString(),
+          createdAt: dayjs(new Date()).format("DD-MM-YY : HH:MM:ss"),
           paymentProofRequired: course?.course_type !== 'PRESENTIAL'
         };
         updateStatus(newStatus);
@@ -449,7 +464,7 @@ export default function CheckoutPage() {
                       </p>
                       {courseStatus?.createdAt && (
                         <p className="text-sm text-gray-500 mt-2">
-                          Solicitação enviada em: {new Date(courseStatus.createdAt).toLocaleString()}
+                          Solicitação enviada em: {courseStatus.createdAt}
                         </p>
                       )}
                       {courseStatus?.paymentProofRequired && (
@@ -484,7 +499,7 @@ export default function CheckoutPage() {
                       </p>
                       {courseStatus?.createdAt && (
                         <p className="text-sm text-gray-500 mt-2">
-                          Confirmado em: {new Date(courseStatus.createdAt).toLocaleString()}
+                          Confirmado em: {courseStatus.updatedAt}
                         </p>
                       )}
                       <div className="mt-6">
@@ -534,7 +549,7 @@ export default function CheckoutPage() {
                       </p>
                       {courseStatus?.createdAt && (
                         <p className="text-sm text-gray-500 mt-2">
-                          Rejeitado em: {new Date(courseStatus.createdAt).toLocaleString()}
+                          Rejeitado em: {courseStatus.updatedAt}
                         </p>
                       )}
 
@@ -545,12 +560,6 @@ export default function CheckoutPage() {
                         >
                           Tentar Novamente
                         </button>
-                        <Link
-                          href="/suporte"
-                          className="inline-flex items-center bg-primary hover:bg-primary-hover text-white font-medium py-2 px-4 rounded-md shadow-sm transition-colors"
-                        >
-                          Contatar Suporte
-                        </Link>
                       </div>
                     </div>
                   </div>
@@ -569,7 +578,7 @@ export default function CheckoutPage() {
                       </p>
                       {courseStatus?.createdAt && (
                         <p className="text-sm text-gray-500 mt-2">
-                          Solicitado em: {new Date(courseStatus.createdAt).toLocaleString()}
+                          Solicitado em: {courseStatus.createdAt}
                         </p>
                       )}
 
@@ -617,7 +626,7 @@ export default function CheckoutPage() {
                   <div>
                     <h3 className="font-medium">{course.title}</h3>
                     <p className="text-sm text-gray-500">
-                      {course.duration} de conteúdo
+                      {course.duration} horas de conteúdo
                     </p>
                     {course.course_type === 'PRESENTIAL' && (
                       <span className="inline-block mt-1 px-2 py-1 text-xs font-semibold bg-yellow-100 text-yellow-800 rounded">
@@ -652,7 +661,7 @@ export default function CheckoutPage() {
                       Acesso Liberado
                     </h4>
                     <p className="text-sm text-green-700">
-                      Sua matrícula foi confirmada em: {new Date(courseStatus.createdAt).toLocaleString()}
+                      Sua matrícula foi confirmada em: {courseStatus.updatedAt}
                     </p>
                   </div>
                 )}

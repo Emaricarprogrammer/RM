@@ -45,6 +45,7 @@ export default function InstructorProfilePage() {
       try {
         setIsLoading(true);
         const response = await InstrutorProfile(id_instructor);
+        console.log(response.response)
         setInstructor(response.response);
       } catch (err) {
         console.error("Error fetching instructor data:", err);

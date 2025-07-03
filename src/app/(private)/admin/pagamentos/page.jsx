@@ -71,6 +71,7 @@ export default function PaymentApprovalPage() {
         return
       }
       const response = await Enrrols(token);
+      console.log(response)
       
       if (response.success) {
         const allEnrolls = response.response.map(enroll => ({
@@ -81,7 +82,7 @@ export default function PaymentApprovalPage() {
           courseName: enroll.enroll_datas?.course_name || "Curso não disponível",
           courseType: enroll.enroll_datas?.course_type || "Tipo não disponível",
           amount: enroll.enroll_datas?.course_price || 0,
-          paymentDate: enroll.enroll_datas?.course_date || new Date().toISOString(),
+          paymentDate: enroll.enroll_datas?.course_date,
           rawData: enroll
         }));
         

@@ -1,6 +1,7 @@
 import { api } from "@/api/api";
 
 async function EditInstructor(id_instructor, formData, token) {
+  console.log(formData)
   try {
     const response = await api.patch(`/users/instructors/profile/edit/${id_instructor}`, formData, {
       headers: {

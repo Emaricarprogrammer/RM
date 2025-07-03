@@ -9,6 +9,7 @@ import { api } from "@/api/api";
 import { Loading } from "@/app/_components/Loading";
 import { useUserAuth } from "@/hooks/useAuth";
 import { NotFoundPage } from "@/app/_components/Notfound";
+import { DeleteVideo } from "@/api/Courses/videos/deleteVideo";
 
 export default function VideosAdminPage() {
   const searchParams = useSearchParams();
@@ -112,7 +113,7 @@ export default function VideosAdminPage() {
 
   const handleDelete = async () => {
     try {
-      await api.delete(`/videos/${currentVideo.id}`);
+      await DeleteVideo(currentVideo.id)
       setCourse(prev => ({
         ...prev,
         course_videos: prev.course_videos.filter(v => v.id_video !== currentVideo.id),

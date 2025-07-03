@@ -26,6 +26,7 @@ export default function InstructorProfilePage() {
       try {
         setIsLoading(true);
         const response = await InstrutorProfile(id_instructor);
+        console.log(response.response)
         setInstructor(response.response);
       } catch (err) {
         console.error("Error fetching instructor data:", err);
@@ -91,8 +92,7 @@ export default function InstructorProfilePage() {
   );
   const totalPages = Math.ceil(filteredCourses.length / coursesPerPage);
   const totalStudents = instructor.students_watching_my_courses
-  const totalWatchingCourse = instructor.total_watching
-  
+  const totalWatchingCourse = instructor.instructors_courses.courses
 
   return (
     <div className="bg-gray-50 min-h-screen">

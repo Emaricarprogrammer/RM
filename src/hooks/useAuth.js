@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getUserType } from "@/api/Authorization/getUserType";
+import { getUserType} from "@/api/Authorization/getUserType";
 
 function useUserAuth(allowedUsers = []) {
   const [loading, setLoading] = useState(true);
