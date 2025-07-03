@@ -136,7 +136,14 @@ export default function CourseCard({ course, userType, hasPurchased }) {
             >
               Comprar
             </Link>
-          ) : (
+          ) : userType === "SUPER_ADMIN" ?
+          <Link
+              href={`/detalhes-do-curso?id=${course.id_course}`}
+              className="w-full block text-center bg-gradient-to-br from-blue-900 to-blue-700 hover:from-blue-800 hover:to-blue-600 text-white px-4 py-2 rounded-md transition-all"
+              prefetch={false}
+            >
+              Ver detalhes
+            </Link> :(
             <Link
               href={`/criar-conta?redirect=/detalhes-do-curso/${course.id_course}`}
               className="w-full block text-center bg-gradient-to-br from-blue-900 to-blue-700 hover:from-blue-800 hover:to-blue-600 text-white px-4 py-2 rounded-md transition-all"

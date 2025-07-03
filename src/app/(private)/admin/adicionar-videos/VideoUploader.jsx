@@ -253,7 +253,7 @@ export function VideoUploader({ register, setValue, videoIndex, errors, disabled
                       <span className="text-blue-600">Clique para enviar</span> ou arraste o vídeo
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      Formatos: MP4, WEBM, OGG, MOV (até 3GB)
+                      Formatos: MP4, WEBM, OGG, MOV (até 500MB)
                     </p>
                   </div>
                 </>

@@ -65,7 +65,7 @@ export function Navbar() {
       path: "/cursos", 
       label: "Cursos", 
       subLinks: [
-        { path: "/admin/categorias", label: "Gerenciar categorias                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         " },
+        { path: "/admin/categorias", label: "Gerenciar categorias" },
         { path: "/admin/adicionar-curso", label: "Adicionar Curso" }
       ]
     },
@@ -78,6 +78,18 @@ export function Navbar() {
       ]
     },
     { path: "/admin/pagamentos", label: "Pagamentos" },
+  ];
+
+  // Links para SUPER_ADMIN
+  const superAdminLinks = [
+    { path: "/super-admin", label: "Dashboard" },
+    { 
+      path: "#", 
+      label: "Configurações", 
+      subLinks: [
+        { path: "/super-admin/configuracoes-sistema", label: "Configurações do Sistema" },
+      ]
+    },
   ];
 
   // Links para Estudante
@@ -100,23 +112,22 @@ export function Navbar() {
     { label: "Sair", onClick: handleLogout, isButton: true }
   ];
 
-  if (isLoading)
-  {
-    
+  if (isLoading) {
     return <Loading message="Seja bem-vindo a Academia Egaf..."/>;
   }
 
-  if (isLoggingOut)
-  {
+  if (isLoggingOut) {
     return <Loading message="Agradecemos a sua visita 😉, volte sempre..." />;
   }
 
   // Define os links principais baseados no tipo de usuário
-  const mainLinks = userType === 'admin' 
-    ? adminLinks 
-    : userType === 'student' 
-      ? studentLinks 
-      : publicLinks;
+  const mainLinks = userType === 'super_admin' 
+    ? superAdminLinks 
+    : userType === 'admin' 
+      ? adminLinks 
+      : userType === 'student' 
+        ? studentLinks 
+        : publicLinks;
 
   return (
     <>      
@@ -126,7 +137,11 @@ export function Navbar() {
       >
         <div className="container mx-auto flex items-center justify-between h-20 px-4 md:px-8">
           <Link
-            href={userType ? (userType === 'admin' ? "/admin" : "/home") : "/"}
+            href={userType 
+              ? userType === 'super_admin' ? "/super-admin" 
+                : userType === 'admin' ? "/admin" 
+                : "/home" 
+              : "/"}
             className={`text-2xl font-bold ${
               isScrolled
                 ? "bg-gradient-to-br from-blue-900 to-blue-700 bg-clip-text text-transparent"
@@ -249,7 +264,8 @@ export function Navbar() {
               {/* Links Principais */}
               <div className="space-y-4">
                 <h3 className="text-sm uppercase text-gray-500">
-                  {userType === 'admin' ? 'Administração' : 
+                  {userType === 'super_admin' ? 'Super Administração' : 
+                   userType === 'admin' ? 'Administração' : 
                    userType === 'student' ? 'Meu Espaço' : 'Navegação'}
                 </h3>
                 <ul className="space-y-2">

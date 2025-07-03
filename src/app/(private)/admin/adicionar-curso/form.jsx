@@ -54,11 +54,6 @@ export function CourseForm() {
     return <Loading message="Academia Egaf..." />;
   }
 
-  if (!isAuthorized)
-  {
-    return 
-  }
-
   const handleReset = () => {
     reset();
     toast.success("Formulário limpo com sucesso", {

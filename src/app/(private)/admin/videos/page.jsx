@@ -203,7 +203,7 @@ export default function VideosAdminPage() {
               <div className="flex flex-wrap gap-4">
                 <div className="flex items-center gap-2 text-sm">
                   <User className="w-4 h-4" />
-                  <span>{course.instructor_datas.user?.full_name || "Instrutor não definido"}</span>
+                  <span>Formador: {course.instructor_datas.user?.full_name || "Instrutor não definido"}</span>
                 </div>
                 
                 <div className="flex items-center gap-2 text-sm">
@@ -334,7 +334,7 @@ export default function VideosAdminPage() {
                                 </button>
                                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <Link
-                                    href={`/admin/editar-video?id=${idCurse}&videoId=${lesson.id}`}
+                                    href={`/admin/editar-video?id=${lesson.id}`}
                                     className="p-1.5 rounded-md text-gray-500 hover:text-blue-600 hover:bg-blue-100 transition-colors"
                                     title="Editar vídeo"
                                   >

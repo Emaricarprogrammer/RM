@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useEditVideoForm } from "@/hooks/useEditVideoForm";
 import { EditVideoUploader } from "./EditVideoUploader";
-import { updateVideoData } from "./api";
+import { updateVideoData } from "@/api/Courses/videos/updateVideo";
 import { ErrorPage } from "@/app/_components/ErrorPage";
 import { NotFoundPage } from "@/app/_components/Notfound";
 import { Loading } from "@/app/_components/Loading";
 import { useEffect, useState } from "react";
 
-export function EditVideoForm({ courseId, videoId }) {
+export function EditVideoForm({ videoId }) {
   const router = useRouter();
   const {
     isLoading,
@@ -24,52 +24,93 @@ export function EditVideoForm({ courseId, videoId }) {
     watch,
     setIsSubmitting,
     courseError,
-  } = useEditVideoForm(courseId, videoId);
+    hasChanges,
+    getValues,
+  } = useEditVideoForm(videoId);
 
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [showNoChangesError, setShowNoChangesError] = useState(false);
 
-  const onSubmit = async (data) => {
+  // Verifica se há alterações não salvas antes de sair da página
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (hasChanges()) {
+        e.preventDefault();
+        e.returnValue = 'Você tem alterações não salvas. Deseja realmente sair?';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasChanges]);
+
+const onSubmit = async (data) => {
     try {
+      if (!hasChanges()) {
+        setShowNoChangesError(true);
+        return;
+      }
+
       setIsUploading(true);
       setSubmitError(null);
       setSubmitSuccess(false);
+      setShowNoChangesError(false);
 
       const formData = new FormData();
-      formData.append("title", data.title);
-      formData.append("description", data.description);
-      if (data.video_file) {
-        formData.append("video_file", data.video_file);
+      
+      // Adiciona apenas campos modificados
+      if (data.title !== videoData.title) {
+        formData.append('title', data.title);
       }
+      if (data.description !== videoData.description) {
+        formData.append('description', data.description);
+      }
+      if (data.video_file) {
+        formData.append('video_file', data.video_file);
+      }
+
+      // Verifica se há alterações válidas
+      if (formData.entries().next().done) {
+        setSubmitError("Nenhuma alteração válida detectada");
+        return;
+      }
+
+      // Adiciona o ID do curso para redirecionamento
+      formData.append('id_course_fk', videoData.id_course_fk);
+
+      console.log('Dados sendo enviados:', Object.fromEntries(formData));
 
       const result = await updateVideoData(videoId, formData);
 
-      if (result.success) {
-        setSubmitSuccess(result.message || "Vídeo atualizado com sucesso!");
-        router.push(
-          `/admin/cursos/${courseId}?success=${encodeURIComponent(
-            result.message
-          )}`
-        );
-      } else {
-        setSubmitError(result.message || "Erro ao atualizar vídeo");
+      if (!result.success) {
+        throw new Error(result.message);
       }
+
+      setSubmitSuccess(result.message);
+      router.push(
+        `/admin/cursos/${videoData.id_course_fk}?success=${encodeURIComponent(result.message)}`
+      );
     } catch (error) {
-      setSubmitError("Erro ao atualizar vídeo: " + error.message);
-      console.error("Erro ao atualizar vídeo:", error);
+      setSubmitError(error.message);
+      console.error("Erro na atualização:", error);
     } finally {
       setIsUploading(false);
       setIsSubmitting(false);
     }
-  };
+};
 
   if (isLoading) {
-    return <Loading message="Carregando os detalhes..." />;
+    return <Loading message="Carregando os detalhes do vídeo..." />;
   }
 
   if (courseError) {
     return <NotFoundPage message="Não conseguimos encontrar este vídeo." />;
+  }
+
+  if (!videoData) {
+    return <ErrorPage message="Dados do vídeo não disponíveis." />;
   }
 
   return (
@@ -81,13 +122,13 @@ export function EditVideoForm({ courseId, videoId }) {
       </div>
 
       {/* Course details card */}
-      {videoData?.course && (
+      {videoData?.curse_associated && (
         <div className="mb-8 bg-white rounded-lg border border-gray-100 shadow-sm overflow-hidden">
           <div className="flex flex-col md:flex-row">
             <div className="md:w-1/4 bg-gray-100">
               <img
-                src={videoData.course.image_url || "/placeholder-course.jpg"}
-                alt={videoData.course.title}
+                src={videoData.curse_associated.image_url || "/placeholder-course.jpg"}
+                alt={videoData.curse_associated.title}
                 className="w-full h-48 md:h-full object-cover"
               />
             </div>
@@ -95,13 +136,13 @@ export function EditVideoForm({ courseId, videoId }) {
             <div className="p-6 md:p-6 flex-1">
               <div className="mb-4">
                 <span className="inline-block bg-blue-50 text-blue-700 text-xs font-medium px-2 py-1 rounded mb-2">
-                  {videoData.course.category?.name || 'Geral'}
+                  {videoData.curse_associated.category?.name || 'Geral'}
                 </span>
                 <h2 className="text-xl font-semibold text-gray-900 mb-1">
-                  {videoData.course.title}
+                  {videoData.curse_associated.title}
                 </h2>
                 <p className="text-gray-600 text-sm">
-                  {videoData.course.description}
+                  {videoData.curse_associated.description}
                 </p>
               </div>
               
@@ -110,14 +151,14 @@ export function EditVideoForm({ courseId, videoId }) {
                   <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span className="text-gray-700">{videoData.course.duration || '--'}</span>
+                  <span className="text-gray-700">{videoData.curse_associated.duration || '--'}</span>
                 </div>
                 
                 <div className="flex items-center">
                   <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  <span className="text-gray-700">{videoData.course.total_lessons || 0} aulas</span>
+                  <span className="text-gray-700">{videoData.curse_associated.total_lessons || 0} aulas</span>
                 </div>
                 
                 <div className="flex items-center">
@@ -125,7 +166,7 @@ export function EditVideoForm({ courseId, videoId }) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                   <span className="text-gray-700">
-                    {videoData.course.instructors_datas?.full_name || 'Instrutor não definido'}
+                    {videoData.curse_associated.instructors_datas?.full_name || 'Instrutor não definido'}
                   </span>
                 </div>
                 
@@ -159,6 +200,7 @@ export function EditVideoForm({ courseId, videoId }) {
             </div>
 
             <EditVideoUploader
+            
               register={register}
               setValue={setValue}
               errors={errors}
@@ -195,10 +237,21 @@ export function EditVideoForm({ courseId, videoId }) {
           </div>
         )}
 
+        {showNoChangesError && (
+          <div className="p-4 bg-yellow-100 text-yellow-700 rounded-md">
+            Nenhuma alteração foi detectada. Modifique algum campo para atualizar o vídeo.
+          </div>
+        )}
+
         <div className="flex justify-end gap-3 pt-4">
           <button
             type="button"
-            onClick={() => router.push(`/admin/cursos/${courseId}`)}
+            onClick={() => {
+              if (hasChanges() && !confirm('Você tem alterações não salvas. Deseja realmente sair?')) {
+                return;
+              }
+              router.push(`/admin/cursos/${videoData.id_course_fk}`);
+            }}
             className="px-4 py-2 border rounded-md hover:bg-gray-50"
             disabled={isUploading}
           >
@@ -206,8 +259,12 @@ export function EditVideoForm({ courseId, videoId }) {
           </button>
           <button
             type="submit"
-            disabled={isSubmitting || isUploading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-70 flex items-center gap-2"
+            disabled={isSubmitting || isUploading || !hasChanges()}
+            className={`px-4 py-2 rounded-md flex items-center gap-2 ${
+              hasChanges() 
+                ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
           >
             {isUploading ? (
               <>
