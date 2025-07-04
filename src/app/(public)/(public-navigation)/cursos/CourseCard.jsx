@@ -22,7 +22,7 @@ export default function CourseCard({ course, userType, hasPurchased }) {
       setIsDeleting(true);
       const token = typeof window !== 'undefined' ? localStorage.getItem('access') : null;
       if (!token) {
-        toast.error("Sessão expirada. Por favor, faça login novamente.");
+        router.replace("/login")
         return;
       }
       

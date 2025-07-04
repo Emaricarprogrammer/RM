@@ -37,6 +37,10 @@ export default function InstructorProfilePage() {
   const searchParams = useSearchParams();
   const id_instructor = searchParams.get('id');
   const token = localStorage.getItem("access")
+  if(!token)
+  {
+    router.replace("/login")
+  }
 
   useEffect(() => {
     if (!isAuthLoading && token)

@@ -36,7 +36,7 @@ export function EditInstructorForm({ initialValues = {}, instructorId }) {
 
   if (!token) {
     if (typeof window !== 'undefined') {
-      router.push("/");
+      router.push("/login");
     }
     return null;
   }

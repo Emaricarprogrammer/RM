@@ -18,7 +18,10 @@ export function EditCourseForm({ initialValues }) {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const token = typeof window !== 'undefined' ? localStorage.getItem("access") : null;
   const {loading: isAuthLoading} = useUserAuth(["ADMIN"])
-
+  if (!token)
+  {
+    router.replace("/login")
+  }
   const {
     register,
     handleSubmit,

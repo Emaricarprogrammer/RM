@@ -34,15 +34,16 @@ export function StudentData() {
           
           const token = localStorage.getItem('access');
           
-          if (!token) {
-            throw new Error("Sessão expirada. Faça login novamente.");
+          if (!token)
+          {
+            router.replace("/login")
           }
 
           const decodedToken = jwtDecode(token);
           const id_student = decodedToken.userClaims.id_student;
 
           if (!id_student) {
-            throw new Error("ID do estudante não encontrado no token.");
+            router.replace("/login")
           }
 
           const result = await MyProfile(id_student, token);

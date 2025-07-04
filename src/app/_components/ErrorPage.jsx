@@ -11,7 +11,6 @@ function ErrorPage({ message = "Desculpe, estamos com problemas tente mais tarde
           <AlertTriangle className="h-8 w-8 text-red-600" />
         </div>
         
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">500</h1>
         <p className="text-lg text-gray-600 mb-6">{message}</p>
       </div>
     </div>

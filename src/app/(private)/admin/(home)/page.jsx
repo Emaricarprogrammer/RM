@@ -30,14 +30,14 @@ export default function AdminHomePage() {
       const token = localStorage.getItem('access');
       
       if (!token) {
-        return;
+        router.replace("/login")
       }
 
       const decodedToken = jwtDecode(token);
       const id_admin = decodedToken.userClaims.id_admin;
 
       if (!id_admin) {
-        return;
+        router.replace("/login")
       }
 
       const result = await BasicsManagements(token, id_admin);

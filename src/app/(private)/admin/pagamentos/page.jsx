@@ -70,7 +70,7 @@ export default function PaymentApprovalPage() {
     try {
       if (!token)
       {
-        return
+        router.replace("/")
       }
       const response = await Enrrols(token);
       console.log(response)

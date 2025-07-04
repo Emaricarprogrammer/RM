@@ -33,6 +33,10 @@ export default function InstructorsListPage() {
   const {loading: isAuthLoading} = useUserAuth(["ADMIN"])
   const router = useRouter()
   const token = localStorage.getItem("access")
+  if (!token)
+  {
+    router.replace("/login")
+  }
 
   useEffect(() => {
     if (!isAuthLoading && token)
