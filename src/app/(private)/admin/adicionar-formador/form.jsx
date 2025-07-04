@@ -39,7 +39,11 @@ export default function InstructorForm() {
 
   const onSubmit = async (data) => {
     try {
-      const token = localStorage.getItem("access") || "";
+      const token = localStorage.getItem("access");
+      if (!token)
+      {
+        router.replace("/login")
+      }
       const result = await CreateInstructor(data, token);
       
       if (result.success) {

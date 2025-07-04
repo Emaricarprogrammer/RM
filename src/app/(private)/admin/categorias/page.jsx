@@ -14,6 +14,7 @@ import {toast, Toaster} from "react-hot-toast";
 import { jwtDecode } from "jwt-decode";
 import { useUserAuth } from "@/hooks/useAuth";
 import { Loading } from "@/app/_components/Loading";
+import { useRouter } from "next/navigation";
 
 export default function CategoriesAdminPage() {
   // Estados
@@ -27,14 +28,17 @@ export default function CategoriesAdminPage() {
   const [loading, setLoading] = useState(true);
   const [accessToken, setAccessToken] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter()
   const {loading: isAuthLoading, isAuthorized} = useUserAuth(["ADMIN"])
 
   // Obter token de acesso
   useEffect(() => {
     const token = localStorage.getItem('access');
-    if (token) {
+    if (!token)
+      {
+        router.replace("/login")
+      }
       setAccessToken(token);
-    }
   }, []);
 
   // Carregar categorias

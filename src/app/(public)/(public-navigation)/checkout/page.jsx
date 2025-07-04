@@ -173,6 +173,10 @@ export default function CheckoutPage() {
   useEffect(() => {
     const initializeStudent = async () => {
       const token = localStorage.getItem("access");
+      if (!token)
+      {
+        router.replace("/login")
+      }
       if (!isAuthLoading && token && isAuthorized) {
         try {
           const decoded = jwtDecode(token);

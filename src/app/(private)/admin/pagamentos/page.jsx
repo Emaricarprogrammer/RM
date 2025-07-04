@@ -17,6 +17,7 @@ import dayjs from "dayjs";
 import { Enrrols } from "@/api/Users/Admins/basicsManagements";
 import { setEnrollStatus } from "@/api/Users/Admins/basicsManagements";
 import { useUserAuth } from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
 
 // Componente de abas para navegação
 const StatusTabs = ({ activeTab, setActiveTab }) => {
@@ -60,6 +61,7 @@ export default function PaymentApprovalPage() {
   const [lastUpdate, setLastUpdate] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const {loading: isAuthLoading, isAuthorized, userType} = useUserAuth(["ADMIN"])
+  const router = useRouter()
   
   const token = localStorage.getItem("access");
 
@@ -68,7 +70,7 @@ export default function PaymentApprovalPage() {
     try {
       if (!token)
       {
-        return
+        router.replace("/")
       }
       const response = await Enrrols(token);
       console.log(response)
@@ -244,15 +246,41 @@ export default function PaymentApprovalPage() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <p className="text-red-500 mb-4">{error}</p>
-          <button 
-            onClick={handleManualRefresh} 
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Tentar novamente
-          </button>
+      <div className="fixed inset-0 z-50 bg-gray-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg text-center">
+          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+            <svg 
+              className="h-6 w-6 text-red-600" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={2} 
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
+              />
+            </svg>
+          </div>
+          
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Ocorreu um erro</h3>
+          <p className="text-sm text-gray-500 mb-6">{error}</p>
+          
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => router.push('/')}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md shadow-sm hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+            >
+              Recarregar
+            </button>
+          </div>
+          
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <p className="text-xs text-gray-500">
+              Se o problema persistir, entre em contato com o suporte.
+            </p>
+          </div>
         </div>
       </div>
     );

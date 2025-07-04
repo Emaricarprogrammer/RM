@@ -67,7 +67,15 @@ export function Navbar() {
       { path: "/cursos", label: "Cursos" },
     ],
     super_admin: [
+      { path: "/", label: "Inicio" },
       { path: "/super-admin", label: "Dashboard" },
+      { 
+      path: "/super-admin/configuracoes-sistema", 
+      label: "Configurações", 
+      subLinks: [
+        { path: "/super-admin/configuracoes-sistema", label: "Configurações do Sistema" },
+      ]
+    }
     ],
   };
 

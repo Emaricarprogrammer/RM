@@ -2,18 +2,18 @@
 import { EditVideoForm } from "./form";
 
 export default function EditVideoPage({ searchParams }) {
-  const { courseId, videoId } = searchParams;
+  const { id } = searchParams; // Agora só precisamos do videoId
 
-  if (!courseId || !videoId) {
+  if (!id) {
     return (
       <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 to-slate-200 pt-8 md:pt-10 pb-8 px-4 sm:px-6">
         <div className="max-w-[1700px] mx-auto">
           <div className="bg-white rounded-xl shadow-lg overflow-hidden p-8 text-center">
             <h1 className="text-2xl font-bold text-red-600">
-              Parâmetros inválidos
+              Parâmetro inválido
             </h1>
             <p className="mt-4 text-gray-700">
-              Os parâmetros courseId e videoId são obrigatórios na URL
+              O parâmetro videoId é obrigatório na URL
             </p>
           </div>
         </div>
@@ -31,7 +31,7 @@ export default function EditVideoPage({ searchParams }) {
               Atualize os detalhes deste vídeo
             </p>
           </div>
-          <EditVideoForm courseId={courseId} videoId={videoId} />
+          <EditVideoForm videoId={id} />
         </div>
       </div>
     </div>

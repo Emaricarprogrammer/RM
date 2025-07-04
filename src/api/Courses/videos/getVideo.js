@@ -1,6 +1,6 @@
 import { videoAPI } from "@/api/api";
 
-async function VideoDetails(id_course) {
+async function VideoDetails(id_video) {
     try {
         const response = await videoAPI.get(`/courses/video/${id_video}`);
         

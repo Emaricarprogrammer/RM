@@ -30,14 +30,14 @@ export default function AdminHomePage() {
       const token = localStorage.getItem('access');
       
       if (!token) {
-        return;
+        router.replace("/login")
       }
 
       const decodedToken = jwtDecode(token);
       const id_admin = decodedToken.userClaims.id_admin;
 
       if (!id_admin) {
-        return;
+        router.replace("/login")
       }
 
       const result = await BasicsManagements(token, id_admin);
@@ -115,14 +115,6 @@ export default function AdminHomePage() {
     },
     {
       id: 2,
-      title: "Adicionar Videos",
-      description: "Adicione videos aos cursos da plataforma",
-      icon: <PlusCircle size={24} />,
-      link: "/admin/adicionar-videos",
-      color: "bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-50",
-    },
-    {
-      id: 3,
       title: "Gerenciar Cursos",
       description: "Edite ou remova cursos existentes",
       icon: <BookText size={24} />,
@@ -130,7 +122,7 @@ export default function AdminHomePage() {
       color: "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-50",
     },
     {
-      id: 4,
+      id: 3,
       title: "Gerenciar Categorias",
       description: "Adicione ou edite categorias de cursos",
       icon: <List size={24} />,
@@ -138,7 +130,7 @@ export default function AdminHomePage() {
       color: "bg-cyan-100 text-cyan-800 border-cyan-200 hover:bg-cyan-50",
     },
     {
-      id: 5,
+      id: 4,
       title: "Adicionar Formador",
       description: "Registre um novo formador na plataforma",
       icon: <GraduationCap size={24} />,
@@ -185,17 +177,10 @@ export default function AdminHomePage() {
           
           <div className="flex gap-3 justify-center">
             <button
-              onClick={fetchData}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-            >
-              Tentar novamente
-            </button>
-            
-            <button
               onClick={() => router.push('/')}
               className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md shadow-sm hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
             >
-              Voltar ao início
+              Recarregar
             </button>
           </div>
           

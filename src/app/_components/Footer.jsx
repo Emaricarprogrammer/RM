@@ -1,6 +1,42 @@
+"use client"
 import { Mail, Phone, Map } from "lucide-react";
+import { GetCredentials } from "@/api/Users/Admins/SuperAdmin/getCredentials";
+import { useEffect, useState } from "react";
 
 export function Footer() {
+  const [credentials, setCredentials] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    async function fetchCredentials() {
+      try {
+        const data = await GetCredentials();
+        setCredentials(data.Private_credentials || null);
+      } catch (err) {
+        setError("Erro ao carregar informações de contato");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchCredentials();
+  }, []);
+
+  // Valores padrão que serão usados caso a API não retorne dados
+  const defaultValues = {
+    private_adresss: "Rua Av. 21 de Janeiro, Edifício Sky Bar, Bairro Morro Bento (Luanda)",
+    private_email: "geral@academiaegaf.com",
+    private_phone: "(+244) 945 489 267",
+    facebook_url: "#",
+    instagram_url: "#",
+    linkedin_url: "#"
+  };
+
+  // Combina os valores padrão com os da API (se existirem)
+  const contactData = credentials ? { ...defaultValues, ...credentials } : defaultValues;
+
   return (
     <footer className="flex flex-col w-full bg-gradient-to-br from-blue-900 to-blue-800 px-8 md:px-28 pt-16 pb-6 gap-8">
       {/* Conteúdo principal em grid */}
@@ -19,7 +55,7 @@ export function Footer() {
         <div className="flex flex-col gap-4 order-3 md:order-2">
           <h1 className="text-2xl font-medium text-white">Links</h1>
           <div className="flex gap-5 items-center">
-            <a href="#">
+            <a href={contactData.facebook_url} target="_blank" rel="noopener noreferrer">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
@@ -31,7 +67,7 @@ export function Footer() {
                 />
               </svg>
             </a>
-            <a href="#">
+            <a href={contactData.instagram_url} target="_blank" rel="noopener noreferrer">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
@@ -44,7 +80,7 @@ export function Footer() {
                 <circle fill="currentColor" cx="11.994" cy="11.979" r="3.003" />
               </svg>
             </a>
-            <a href="#">
+            <a href={contactData.linkedin_url} target="_blank" rel="noopener noreferrer">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
@@ -66,18 +102,15 @@ export function Footer() {
           <div className="flex flex-col gap-5 text-sm md:text-base">
             <p className="flex gap-3 items-center">
               <Map className="size-6" />
-              <span>
-                Rua Av. 21 de Janeiro, Edifício Sky Bar, Bairro Morro Bento
-                (Luanda)
-              </span>
+              <span>{contactData.private_adresss}</span>
             </p>
             <p className="flex gap-3 items-center">
               <Mail className="size-6" />
-              <span>geral@academiaegaf.com</span>
+              <span>{contactData.private_email}</span>
             </p>
             <p className="flex gap-3 items-center">
               <Phone className="size-6" />
-              <span>(+244) 945 489 267</span>
+              <span>{contactData.private_phone}</span>
             </p>
           </div>
         </div>

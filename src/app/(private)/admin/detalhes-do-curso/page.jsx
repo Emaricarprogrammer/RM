@@ -42,6 +42,12 @@ export default function CourseDetailPage() {
   const { course, loading, mutate } = useCourse(id_course);
   const { loading: isAuthLoading } = useUserAuth(["ADMIN"]);
 
+  const token = localStorage.getItem('access');
+  if (!token)
+  {
+    router.replace("/login")
+  }
+
   const toggleModule = (index) => {
     setActiveModule(activeModule === index ? null : index);
   };
@@ -72,7 +78,7 @@ export default function CourseDetailPage() {
   const handleDeleteConfirm = async () => {
     try {
       setIsDeleting(true);
-      const token = localStorage.getItem('access');
+
       await deleteCourse(id_course, token);
       toast.success("Curso eliminado com sucesso!");
       await new Promise(resolve => setTimeout(resolve, 2000));

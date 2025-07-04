@@ -8,6 +8,8 @@ import { submitVideos } from "./api";
 import { ErrorPage } from "@/app/_components/ErrorPage";
 import { NotFoundPage } from "@/app/_components/Notfound";
 import { Loading } from "@/app/_components/Loading";
+import { useRouter } from "next/navigation";
+import { useUserAuth } from "@/hooks/useAuth";
 
 export function VideoForm({ courseId }) {
   const {
@@ -28,6 +30,8 @@ export function VideoForm({ courseId }) {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const router = useRouter()
+  const {loading: isAuthLoading} = useUserAuth(["ADMIN"])
 
   const onSubmit = async (data) => {
     try {
@@ -47,6 +51,7 @@ export function VideoForm({ courseId }) {
       
       if (response.success) {
         setSubmitSuccess(response.message || "Vídeos enviados com sucesso!");
+        router.replace(`/admin/videos?id=${courseId}`)
       } else {
         setSubmitError(response.message || "Erro ao enviar vídeos");
       }
@@ -56,7 +61,10 @@ export function VideoForm({ courseId }) {
       setIsUploading(false);
     }
   };
-
+  if (isAuthLoading)
+  {
+    return <Loading message="Academia Egaf..."/>
+  }
   if (loadingCourse) {
     return <Loading message="Carregando os detalhes..." />;
   }
@@ -118,7 +126,7 @@ export function VideoForm({ courseId }) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                   <span className="text-gray-700">
-                    {courseDetails.instructors_datas?.full_name || 'Instrutor não definido'}
+                    Formador: {courseDetails.instructors_datas?.full_name || 'Instrutor não definido'}
                   </span>
                 </div>
                 
