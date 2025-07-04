@@ -355,19 +355,7 @@ export default function SystemSettingsPage() {
                       </p>
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="block font-medium text-gray-700">
-                        Nova Senha
-                      </label>
-                      <input
-                        type="password"
-                        name="superAdminPassword"
-                        value={settings.superAdminPassword}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-800 transition-all outline-none"
-                        placeholder="Deixe em branco para manter a atual"
-                      />
-                    </div>
+                    
                   </div>
                 </div>
 
