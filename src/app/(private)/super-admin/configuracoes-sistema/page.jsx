@@ -569,39 +569,6 @@ export default function SystemSettingsPage() {
                   </div>
                 </div>
 
-<<<<<<< HEAD
-                {/* Seção Super Admin */}
-                <div className="space-y-6">
-                  <h2 className="flex items-center gap-2 text-xl font-semibold text-blue-800">
-                    <User className="w-5 h-5 text-blue-700" />
-                    Conta Super Admin
-                  </h2>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="block font-medium text-gray-700">
-                        Nome de Usuário
-                      </label>
-                      <input
-                        type="text"
-                        name="superAdminUsername"
-                        value={settings.superAdminUsername}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 rounded-md border border-gray-300 bg-gray-100 text-black text-opacity-55 cursor-not-allowed"
-                        disabled
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        O nome de usuário do super admin não pode ser alterado
-                      </p>
-                    </div>
-
-                    
-                  </div>
-                </div>
-
-                {/* Botões de ação */}
-=======
->>>>>>> dd9a998047a90ac660bf0478af9623e1b18e3707
                 <div className="pt-6 flex justify-end gap-4">
                   <Link
                     href="/super-admin"
