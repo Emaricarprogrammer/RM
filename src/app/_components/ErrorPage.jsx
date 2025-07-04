@@ -10,7 +10,6 @@ function ErrorPage({ message = "Desculpe, estamos com problemas tente mais tarde
         <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
           <AlertTriangle className="h-8 w-8 text-red-600" />
         </div>
-        
         <p className="text-lg text-gray-600 mb-6">{message}</p>
       </div>
     </div>

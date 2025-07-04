@@ -53,7 +53,9 @@ export function useCourseAccess(id_course) {
           hasAccess: false,
           error: error.message
         });
-        router.replace("/");
+        setTimeout(() => {
+        window.location.href = "/"
+      }, 2000);
       }
     };
 

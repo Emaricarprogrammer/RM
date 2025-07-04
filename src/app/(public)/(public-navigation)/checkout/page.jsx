@@ -16,6 +16,7 @@ import { MyEnrolls } from "@/api/Users/Students/myEnrolls";
 import { WatchingCourse } from "@/api/Users/Students/watchingCourse";
 import { useUserAuth } from "@/hooks/useAuth";
 import { MyCourses } from "@/api/Users/Students/myCourses";
+import { GetCredentials } from "@/api/Users/Admins/SuperAdmin/getCredentials";
 import dayjs from "dayjs";
 
 const useCourseStatus = (courseId, idStudent, accessToken) => {
@@ -133,6 +134,8 @@ export default function CheckoutPage() {
   const [nextCheckIn, setNextCheckIn] = useState(0);
   const [checkCount, setCheckCount] = useState(0);
   const MAX_CHECK_ATTEMPTS = 20;
+  const [credentials, setCredentials] = useState(null);
+
   
   const { 
     status: courseStatus, 
@@ -169,6 +172,20 @@ export default function CheckoutPage() {
       isMounted.current = true;
     }
   }, [getCurrentStep]);
+  
+  useEffect(() => {
+    async function fetchCredentials() {
+      try {
+        const data = await GetCredentials();
+        setCredentials(data.Private_credentials || null);
+      } catch (err) {
+        setError("Erro ao carregar informações de contato");
+        console.error(err);
+      }
+    }
+
+    fetchCredentials();
+  }, []);
 
   useEffect(() => {
     const initializeStudent = async () => {
@@ -393,7 +410,7 @@ export default function CheckoutPage() {
                                 Banco
                               </span>
                               <span className="font-medium">
-                                BFA - Banco de Fomento Angola
+                                {credentials.bank_name ? credentials.bank_name : "BFA - Banco de Fomento Angola"}
                               </span>
                             </div>
 
@@ -402,7 +419,7 @@ export default function CheckoutPage() {
                                 Titular
                               </span>
                               <span className="font-medium">
-                                Egaf Oil & Gás, Lda
+                                {credentials.account_holder_name ? credentials.account_holder_name : "Egaf Oil & Gás, Lda"}
                               </span>
                             </div>
 
@@ -411,7 +428,7 @@ export default function CheckoutPage() {
                                 IBAN
                               </span>
                               <span className="font-sans font-bold text-lg">
-                                0006 0000 1248 5137 3016 0
+                                {credentials.iban ? `AO ${credentials.iban}` : "AO 0006 0000 1248 5137 3016 0"}
                               </span>
                             </div>
                           </div>
@@ -474,7 +491,7 @@ export default function CheckoutPage() {
                       {courseStatus?.paymentProofRequired && (
                         <p className="text-sm text-gray-500 mt-4">
                           Envie o comprovativo para{" "}
-                          <strong>pagamentos@academia.com</strong> para agilizar o
+                          <strong>{credentials.private_email ? credentials.private_email : "pagamentos@academia.com"}</strong> para agilizar o
                           processo.
                         </p>
                       )}
@@ -591,11 +608,11 @@ export default function CheckoutPage() {
                           <h4 className="font-bold text-lg mb-2">Informações de Contato</h4>
                           <div className="flex items-center mb-2">
                             <Mail className="w-5 h-5 mr-2 text-blue-600" />
-                            <span>matriculas@academia.com</span>
+                            <span>{credentials.private_email ? credentials.private_email : "pagamentos@academia.com"}</span>
                           </div>
                           <div className="flex items-center">
                             <Phone className="w-5 h-5 mr-2 text-blue-600" />
-                            <span>+244 123 456 789</span>
+                            <span>{credentials.private_phone ? credentials.private_phone : "+244 123 456 789"}</span>
                           </div>
                         </div>
 
@@ -653,7 +670,7 @@ export default function CheckoutPage() {
                     </h4>
                     <p className="text-sm text-yellow-700">
                       Após a transferência, envie o comprovativo para{" "}
-                      <strong>pagamentos@academia.com</strong> com seu nome para
+                      <strong>{credentials.private_email ? credentials.private_email : "pagamentos@academia.com"}</strong> com seu nome para
                       agilizar a liberação do acesso.
                     </p>
                   </div>

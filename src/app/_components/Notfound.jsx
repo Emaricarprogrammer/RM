@@ -10,8 +10,6 @@ function NotFoundPage({ message = "Página não encontrada" }) {
         <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
           <AlertTriangle className="h-8 w-8 text-red-600" />
         </div>
-        
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">404</h1>
         <p className="text-lg text-gray-600 mb-6">{message}</p>
         
         <div className="flex justify-center">

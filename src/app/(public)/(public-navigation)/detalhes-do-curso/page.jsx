@@ -339,41 +339,46 @@ useEffect(() => {
               </ul>
 
               {/* Botões de ação para admin */}
-  {userType === 'admin' ? (
-  <div className="mt-6 space-y-2">
-    <button
-      onClick={handleEdit}
-      className="flex items-center justify-center gap-2 w-full py-2 px-4 bg-white text-blue-700 hover:bg-gray-100 rounded-md transition-colors"
-      disabled={isDeleting}
-    >
-      <Edit className="w-5 h-5" />
-      Editar Curso
-    </button>
-    <button
-      onClick={handleDeleteClick}
-      className="flex items-center justify-center gap-2 w-full py-2 px-4 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors"
-      disabled={isDeleting}
-    >
-      {isDeleting ? (
-        <span className="animate-pulse">Eliminando...</span>
-      ) : (
-        <>
-          <Trash2 className="w-5 h-5" />
-          Eliminar Curso
-        </>
-      )}
-    </button>
-  </div>
-) : userType === "student" ? (
-  /* Botão de compra para estudantes */
-  <Link
-    href={isVerifiedSet ? `/assistir-curso?id=${course.id_course}` : `/checkout?id=${course.id_course}`}
-    className="mt-6 block w-full bg-white hover:bg-gray-100 text-blue-800 font-medium py-3 px-4 rounded-md transition-colors text-center"
-  >
-    {isVerifiedSet ? "Ir para as aulas" : "Comprar"}
-  </Link>
-
-) : null}
+              
+              {userType === 'admin' ? (
+                <div className="mt-6 space-y-2">
+                  <button
+                  onClick={handleEdit}
+                  className="flex items-center justify-center gap-2 w-full py-2 px-4 bg-white text-blue-700 hover:bg-gray-100 rounded-md transition-colors"
+                  disabled={isDeleting}>
+              <Edit className="w-5 h-5" />
+                  Editar Curso
+                  </button>
+                  <button
+                onClick={handleDeleteClick}
+                className="flex items-center justify-center gap-2 w-full py-2 px-4 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors"
+                disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <span className="animate-pulse">Eliminando...</span>
+                  ) : (
+                  <>
+                  <Trash2 className="w-5 h-5" />
+                  Eliminar Curso
+                  </>
+                )}
+                </button>
+                </div>
+                ) : userType === "student" ? (
+                  /* Botão de compra para estudantes */
+                  <Link
+                  href={isVerifiedSet ? `/assistir-curso?id=${course.id_course}` : `/checkout?id=${course.id_course}`}
+                  className="mt-6 block w-full bg-white hover:bg-gray-100 text-blue-800 font-medium py-3 px-4 rounded-md transition-colors text-center"
+                  >
+                    {isVerifiedSet ? "Ir para as aulas" : "Comprar"}
+                    </Link>
+                  ) : userType === "SUPER_ADMIN" ? null :
+                  <Link
+                  href={`/criar-conta?redirect=/detalhes-do-curso/${course.id_course}`}
+                  className="mt-6 block w-full bg-white hover:bg-gray-100 text-blue-800 font-medium py-3 px-4 rounded-md transition-colors text-center"
+                  >
+                    Comprar agora
+                    </Link>}
             </div>
 
             {/* Módulos - Apenas para cursos online */}

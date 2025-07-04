@@ -31,6 +31,7 @@ import { NotFoundPage } from "@/app/_components/Notfound";
 import { useRouter } from "next/navigation";
 import { useCourseAccess } from "@/hooks/useVerifyAccess";
 import { useUserAuth } from "@/hooks/useAuth";
+import { ErrorPage } from "@/app/_components/ErrorPage";
 
 export default function CourseDetailPage() {
   // Component states
@@ -102,16 +103,7 @@ export default function CourseDetailPage() {
 
   if (accessState.error) {
     return (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <h2 className="text-2xl font-bold text-red-600 mb-4">Erro de acesso</h2>
-        <p className="text-gray-700 mb-6">{accessState.error}</p>
-        <Link 
-          href="/login" 
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-        >
-          Fazer login
-        </Link>
-      </div>
+      <ErrorPage message="Ocorreu um erro"/>
     );
   }
 
