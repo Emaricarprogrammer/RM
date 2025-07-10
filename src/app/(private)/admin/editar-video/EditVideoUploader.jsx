@@ -15,14 +15,16 @@ export function EditVideoUploader({
   const inputRef = useRef(null);
 
   // Função para lidar com a seleção de arquivo
-const handleFileChange = (e) => {
-  const file = e.target.files[0];
-  if (file) {
-    const previewUrl = URL.createObjectURL(file);
-    setPreview(previewUrl);
-    handleFileChange(file); // Chama a função do hook
-  }
-};
+  const handleFileChange = (e) => {
+    // Verifica se é um evento (do input) ou um arquivo direto
+    const file = e.target ? e.target.files[0] : e;
+    
+    if (file) {
+      const previewUrl = URL.createObjectURL(file);
+      setPreview(previewUrl);
+      setValue("video_file", file, { shouldValidate: true });
+    }
+  };
 
   // Função para remover o vídeo selecionado
   const handleRemove = () => {
@@ -35,7 +37,7 @@ const handleFileChange = (e) => {
 
   // Função para acionar o input file programaticamente
   const handleSelectFile = () => {
-    if (inputRef.current) {
+    if (inputRef.current && !disabled) {
       inputRef.current.click(); // Aciona o clique no input file
     }
   };
@@ -71,7 +73,11 @@ const handleFileChange = (e) => {
               src={existingVideoUrl}
             />
           ) : (
-            <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer">
+            <label 
+              htmlFor="video-upload"
+              className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer"
+              onClick={disabled ? undefined : handleSelectFile}
+            >
               <Upload className="w-16 h-16 mb-4 text-gray-400" />
               <p className="text-lg text-gray-500 mb-1">Clique para enviar</p>
               <p className="text-sm text-gray-400">ou arraste o arquivo aqui</p>
@@ -132,6 +138,7 @@ const handleFileChange = (e) => {
         {/* Input file oculto */}
         <input
           {...register("video_file")}
+          id="video-upload"
           ref={inputRef}
           type="file"
           className="hidden"

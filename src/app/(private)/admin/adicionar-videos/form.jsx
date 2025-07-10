@@ -32,6 +32,16 @@ export function VideoForm({ courseId }) {
   const [isUploading, setIsUploading] = useState(false);
   const router = useRouter()
   const {loading: isAuthLoading} = useUserAuth(["ADMIN"])
+  const [accessToken, setAccessToken] = useState(null)
+
+    useEffect(() => {
+      const token = localStorage.getItem('access');
+      if (!token)
+        {
+          router.replace("/login")
+        }
+        setAccessToken(token);
+    }, []);
 
   const onSubmit = async (data) => {
     try {
@@ -46,8 +56,7 @@ export function VideoForm({ courseId }) {
         videos: videosToSubmit
       };
 
-      const response = await submitVideos(payload);
-      console.log(response)
+      const response = await submitVideos(payload, accessToken);
       
       if (response.success) {
         setSubmitSuccess(response.message || "Vídeos enviados com sucesso!");

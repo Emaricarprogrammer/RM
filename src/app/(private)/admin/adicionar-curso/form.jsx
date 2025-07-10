@@ -26,28 +26,20 @@ export function CourseForm() {
   
   const {loading: isAuthLoading, isAuthorized} = useUserAuth(["ADMIN"]);
 
-  // Efeito para mostrar notificações
-  useEffect(() => {
-    if (submitStatus.message) {
-      const toastStyle = {
-        duration: submitStatus.success ? 4000 : 5000,
-        position: "top-center",
-        style: {
-          background: submitStatus.success ? '#4BB543' : '#FF3333',
-          color: '#fff',
-        },
-      };
-      
-      if (submitStatus.success) {
-        toast.success("Curso atualizado com sucesso!", toastStyle);
-        setTimeout(() => {
-          router.push("/cursos");
-        }, 1500);
-      } else {
-        toast.error(submitStatus.message, toastStyle);
-      }
+// Efeito para mostrar notificações
+useEffect(() => {
+  // Só mostra toast se houver uma mensagem e não estiver no estado inicial
+  if (submitStatus.message) {
+    if (submitStatus.success) {
+      toast.success("Curso adicionado com sucesso!");
+      setTimeout(() => {
+        router.push("/cursos");
+      }, 1300);
+    } else {
+      toast.error(submitStatus.message);
     }
-  }, [submitStatus, router]); // Adicione router às dependências
+  }
+}, [submitStatus, router]);
 
 
   if (isAuthLoading) {

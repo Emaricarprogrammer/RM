@@ -1,8 +1,8 @@
 "use client";
-
+import { deleteAdmin } from "@/api/Users/Admins/adminOperation";
 import { X } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
+import { toast, Toaster} from "react-hot-toast";
 
 export const AdminDeleteModal = ({ 
   admin, 
@@ -10,42 +10,25 @@ export const AdminDeleteModal = ({
   onSuccess = () => {} // Callback para ações após sucesso
 }) => {
   const [isDeleting, setIsDeleting] = useState(false);
-  const [error, setError] = useState(null);
 
   if (!admin) return null;
 
   const handleDelete = async () => {
     try {
       setIsDeleting(true);
-      setError(null);
       
       // 1. Verificar token
       const token = localStorage.getItem("access");
       if (!token) {
-        throw new Error("Sessão expirada. Por favor, faça login novamente.");
+        toast.error("Sessão expirada. Por favor, faça login novamente.");
+        window.location.href = "/login";
+        return;
       }
 
       // 2. Fazer a requisição
-      const response = await fetch(
-        `https://academia-egaf-api.onrender.com/academia.egaf.ao/users/admins/delete/${admin.id_admin}`,
-        {
-          method: "DELETE",
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json"
-          }
-        }
-      );
-
-      // 3. Verificar resposta
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || "Erro ao excluir administrador");
-      }
-
-      // 4. Sucesso
-      toast.success("Administrador excluído com sucesso!", {
-        description: "O administrador foi removido do sistema.",
+      const response = await deleteAdmin(token, admin.id_admin);
+      // 3. Sucesso
+      toast.success(response.message || "Administrador excluído com sucesso!", {
         duration: 3000,
         position: "top-center"
       });
@@ -55,9 +38,7 @@ export const AdminDeleteModal = ({
 
     } catch (err) {
       console.error("Erro na exclusão:", err);
-      setError(err.message);
-      toast.error("Falha na exclusão", {
-        description: err.message,
+      toast.error(err.message || "Falha na exclusão", {
         duration: 5000
       });
     } finally {
@@ -65,10 +46,14 @@ export const AdminDeleteModal = ({
     }
   };
 
-  const adminName = admin.full_name || admin.name || admin.username || "Administrador";
+  const adminName = admin.full_name || admin.username || "Administrador";
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <Toaster 
+                position="top-center" 
+                reverseOrder={false}
+              />
       <div className="bg-white rounded-lg p-6 max-w-md w-full">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-bold text-gray-900">
@@ -82,12 +67,6 @@ export const AdminDeleteModal = ({
             <X className="w-6 h-6" />
           </button>
         </div>
-
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">
-            {error}
-          </div>
-        )}
 
         <p className="text-gray-600 mb-6">
           Tem certeza que deseja remover o administrador{" "}
@@ -111,16 +90,8 @@ export const AdminDeleteModal = ({
             disabled={isDeleting}
           >
             {isDeleting ? (
-              <span className="flex items-center justify-center">
-                <svg 
-                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  fill="none" 
-                  viewBox="0 0 24 24"
-                >
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
+              <span className="flex items-center justify-center gap-2">
+                <span className="animate-spin inline-block w-4 h-4 border-[2px] border-current border-t-transparent text-white rounded-full"></span>
                 Excluindo...
               </span>
             ) : "Confirmar Exclusão"}

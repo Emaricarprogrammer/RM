@@ -162,7 +162,7 @@ export default function CourseDetailPage() {
                     Seu navegador não suporta o elemento de vídeo.
                   </video>
                   <div className="absolute bottom-4 left-4 bg-black bg-opacity-70 text-white px-3 py-1 rounded-md text-sm">
-                    {selectedVideo.duration || '00:00'}
+                    {selectedVideo.duration}
                   </div>
                 </div>
               ) : (
@@ -177,24 +177,6 @@ export default function CourseDetailPage() {
               <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
                 {course.title}
               </h1>
-              
-              <div className="flex items-center gap-3">
-                <button 
-                  onClick={() => setIsFavorite(!isFavorite)}
-                  className={`p-2 rounded-full ${isFavorite ? 'text-red-500 bg-red-50' : 'text-gray-500 hover:bg-gray-100'}`}
-                >
-                  <Heart className="w-5 h-5" />
-                </button>
-                <button 
-                  onClick={() => setIsBookmarked(!isBookmarked)}
-                  className={`p-2 rounded-full ${isBookmarked ? 'text-blue-500 bg-blue-50' : 'text-gray-500 hover:bg-gray-100'}`}
-                >
-                  <Bookmark className="w-5 h-5" />
-                </button>
-                <button className="p-2 rounded-full text-gray-500 hover:bg-gray-100">
-                  <Share2 className="w-5 h-5" />
-                </button>
-              </div>
             </div>
 
             {/* Course metadata */}
@@ -336,15 +318,11 @@ export default function CourseDetailPage() {
                   </span>
                   <span className="flex items-center text-gray-600">
                     <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-                    Certificado
+                    Certificado emitido nas nossas instalações
                   </span>
                   <span className="flex items-center text-gray-600">
                     <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
                     Recursos para download
-                  </span>
-                  <span className="flex items-center text-gray-600">
-                    <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-                    Suporte do instrutor
                   </span>
                 </div>
               </div>
@@ -357,9 +335,6 @@ export default function CourseDetailPage() {
                   <h2 className="text-lg font-semibold text-gray-900">
                     Conteúdo do Curso
                   </h2>
-                  <span className="text-sm text-gray-500">
-                    {totalLessons} aulas • {formatDuration(course.duration)}
-                  </span>
                 </div>
               </div>
 

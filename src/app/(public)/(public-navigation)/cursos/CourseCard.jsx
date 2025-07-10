@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { toast } from "react-hot-toast";
+import { toast, Toaster} from "react-hot-toast";
 import { deleteCourse } from "@/api/Courses/deleteCourse";
 import { DeleteCourseModal } from "@/app/(private)/admin/detalhes-do-curso/DeleteCourseModal";
 
@@ -28,7 +28,7 @@ export default function CourseCard({ course, userType, hasPurchased }) {
       
       await deleteCourse(course.id_course, token);
       toast.success("Curso eliminado com sucesso!");
-      setTimeout(() => router.push("/cursos"), 2000);
+      setTimeout(() => window.location.reload(), 1500);
     } catch (error) {
       console.error("Erro ao eliminar curso:", error);
       toast.error("Ocorreu um erro ao eliminar o curso");
@@ -40,6 +40,7 @@ export default function CourseCard({ course, userType, hasPurchased }) {
 
   return (
     <article className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow border border-gray-200 flex flex-col h-full">
+      <Toaster position="top-center" reverseOrder={false} />
       <div className="h-48 bg-gray-200 overflow-hidden border-b border-gray-100 relative">
         <img
           src={course.image}
@@ -118,6 +119,16 @@ export default function CourseCard({ course, userType, hasPurchased }) {
                 >
                   {isDeleting ? "Apagando..." : "Apagar"}
                 </button>
+                {
+                  course.course_type === "ONLINE" ? (
+                <Link
+                href={`/admin/videos?id=${course.id_course}`}
+                className="w-full text-center bg-gradient-to-br from-blue-900 to-blue-700 hover:from-blue-800 hover:to-blue-600 text-white px-3 py-2 rounded-md text-sm transition-colors"
+                prefetch={false}
+              >
+                Gerenciar videos
+              </Link>) :""
+                }
               </div>
             </div>
           ) : userType === "student" && hasPurchased ? (

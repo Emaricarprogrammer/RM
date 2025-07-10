@@ -27,16 +27,16 @@ export function useEditVideoForm(videoId) {
   });
 
   // Verifica se houve alterações nos campos
-  const hasChanges = () => {
-    if (!initialValues) return false;
-    
-    const currentValues = getValues();
-    return (
-      dirtyFields.title ||
-      dirtyFields.description ||
-      currentValues.video_file !== undefined
-    );
-  };
+const hasChanges = () => {
+  if (!initialValues) return false;
+  
+  const currentValues = getValues();
+  return (
+    currentValues.title !== initialValues.title ||
+    currentValues.description !== initialValues.description ||
+    currentValues.video_file !== undefined
+  );
+};
 
   // Função para atualizar o arquivo de vídeo
   const updateVideoFile = (file) => {

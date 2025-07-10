@@ -28,6 +28,16 @@ export default function VideosAdminPage() {
   const [currentVideoData, setCurrentVideoData] = useState(null);
   const [videoLoading, setVideoLoading] = useState(false);
   const [modules, setModules] = useState([]);
+    const [accessToken, setAccessToken] = useState(null)
+  
+      useEffect(() => {
+        const token = localStorage.getItem('access');
+        if (!token)
+          {
+            router.replace("/login")
+          }
+          setAccessToken(token);
+      }, []);
 
   useEffect(() => {
     if (!idCurse) {
@@ -106,7 +116,7 @@ export default function VideosAdminPage() {
     try {
       const toastId = toast.loading('Deletando vídeo...');
       
-      await DeleteVideo(currentVideo.id);
+      await DeleteVideo(currentVideo.id, accessToken);
       
       // Atualização otimista do estado
       setCourse(prev => {

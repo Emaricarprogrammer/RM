@@ -166,67 +166,70 @@ export default function SystemSettingsPage() {
     }
   };
 
-  const handleOtpSubmit = async (e) => {
-    e.preventDefault();
-    setOtpError("");
-    
-    if (!otp || otp.length !== 6) {
-      setOtpError("O código OTP deve ter 6 dígitos");
-      return;
-    }
+const handleOtpSubmit = async (e) => {
+  e.preventDefault();
+  setOtpError("");
+  
+  if (!otp || otp.length !== 6) {
+    setOtpError("O código OTP deve ter 6 dígitos");
+    return;
+  }
 
-    setIsSubmitting(true);
+  setIsSubmitting(true);
+  
+  try {
+    const changes = getChangedFields();
     
-    try {
-      const changes = getChangedFields();
-      
-      const payload = {
-        ...(changes.bankName && { bank_name: changes.bankName }),
-        ...(changes.accountHolder && { account_holder_name: changes.accountHolder }),
-        ...(changes.iban && { iban: changes.iban }),
-        private_email: formData.private_email,
-        ...(changes.newPrivate_email && { newPrivate_email: changes.newPrivate_email }),
-        ...(changes.address && { private_adresss: changes.address }),
-        ...(changes.phoneNumber && { private_phone: Number(changes.phoneNumber) }),
-        ...(changes.facebookLink && { facebook_url: changes.facebookLink }),
-        ...(changes.instagramLink && { instagram_url: changes.instagramLink }),
-        ...(changes.linkedinLink && { linkedin_url: changes.linkedinLink }),
-        otp_code: Number(otp)
-      };
+    // Criar payload apenas com os campos alterados
+    const payload = {
+      id_private_credentials: credentialsId,
+      otp_code: Number(otp)
+    };
 
-      const response = await EditCredentials(credentialsId, payload, token);
+    // Adicionar apenas os campos que foram alterados
+    if (changes.bankName !== undefined) payload.bank_name = changes.bankName;
+    if (changes.accountHolder !== undefined) payload.account_holder_name = changes.accountHolder;
+    if (changes.iban !== undefined) payload.iban = changes.iban;
+    if (changes.newPrivate_email !== undefined) payload.newPrivate_email = changes.newPrivate_email;
+    if (changes.address !== undefined) payload.private_adresss = changes.address;
+    if (changes.phoneNumber !== undefined) payload.private_phone = Number(changes.phoneNumber);
+    if (changes.facebookLink !== undefined) payload.facebook_url = changes.facebookLink;
+    if (changes.instagramLink !== undefined) payload.instagram_url = changes.instagramLink;
+    if (changes.linkedinLink !== undefined) payload.linkedin_url = changes.linkedinLink;
+
+    const response = await EditCredentials(credentialsId, payload, token);
+    
+    if (response.success) {
+      setInitialData(prev => ({ ...prev, ...changes }));
+      setSubmitSuccess(true);
+      setShowOtpModal(false);
+      setOtp("");
       
-      if (response.success) {
-        setInitialData(prev => ({ ...prev, ...changes }));
-        setSubmitSuccess(true);
-        setShowOtpModal(false);
-        setOtp("");
-        
-        toast.success('Configurações atualizadas com sucesso!', {
-          duration: 3000,
-          position: 'top-center',
-        });
-        
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      } else {
-        setOtpError(response.message || "Falha ao atualizar configurações");
-        toast.error(response.message || "Falha ao atualizar configurações", {
-          duration: 3000,
-          position: 'top-center',
-        });
-      }
-    } catch (err) {
-      setOtpError(err.message || "Erro ao atualizar configurações");
-      toast.error(err.message || "Erro ao atualizar configurações", {
+      toast.success('Configurações atualizadas com sucesso!', {
         duration: 3000,
         position: 'top-center',
       });
-    } finally {
-      setIsSubmitting(false);
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } else {
+      setOtpError(response.message || "Falha ao atualizar configurações");
+      toast.error(response.message || "Falha ao atualizar configurações", {
+        duration: 3000,
+        position: 'top-center',
+      });
     }
-  };
+  } catch (err) {
+    setOtpError(err.message || "Erro ao atualizar configurações");
+    toast.error(err.message || "Erro ao atualizar configurações", {
+      duration: 3000,
+      position: 'top-center',
+    });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const resendOtp = async () => {
     setOtpError("");
@@ -472,7 +475,7 @@ export default function SystemSettingsPage() {
                       name="newPrivate_email"
                       onChange={handleChange}
                       className="w-full px-4 py-3 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-800 transition-all outline-none"
-                      required
+                      
                     />
                   </div>
                 </div>

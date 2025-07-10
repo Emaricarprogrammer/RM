@@ -104,7 +104,7 @@ export function Navbar() {
   const hoverGradientClass = "hover:text-blue-700 transition-colors duration-200";
 
   if (isLoggingOut) {
-    return <Loading message="Agradecemos a sua visita 😉, volte sempre..." />;
+    return <Loading message="Volte sempre, 😉!..." />;
   }
 
   // Obter links do usuário atual de forma segura

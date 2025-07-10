@@ -46,12 +46,9 @@ export function Navbar() {
   }, []);
 
   const handleLogout = () => {
-    setIsLoggingOut(true);
     try {
       localStorage.removeItem("access");
-      setTimeout(() => {
-        router.push("/");
-      }, 1000);
+      window.location.reload()
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
       router.push("/");
@@ -114,10 +111,6 @@ export function Navbar() {
 
   if (isLoading) {
     return <Loading message="Seja bem-vindo a Academia Egaf..."/>;
-  }
-
-  if (isLoggingOut) {
-    return <Loading message="Agradecemos a sua visita 😉, volte sempre..." />;
   }
 
   // Define os links principais baseados no tipo de usuário
@@ -202,34 +195,33 @@ export function Navbar() {
             <div className="flex gap-2 ml-4">
               {authLinks.map((link, index) => (
                 link.isButton ? (
-                  <button
-                    key={index}
-                    onClick={link.onClick}
-                    className={`px-4 py-2 rounded-md ${
-                      isScrolled
-                        ? "bg-blue-600 text-white hover:bg-blue-700"
-                        : "bg-blue-600 text-white hover:bg-gray-100"
-                    } transition-colors`}
+                <button
+                key={index}
+                onClick={link.onClick || (() => router.push(link.path))}
+                className={`px-4 py-2 rounded-md ${
+                  isScrolled
+                  ? "bg-blue-600 text-white hover:bg-blue-700"
+                  : "bg-blue-600 text-white hover:bg-blue-600"
+                  } transition-colors`}
                   >
                     {link.label}
-                  </button>
-                ) : (
-                  <Link
+                    </button>
+                    ) : (
+                    <Link
                     key={link.path}
                     href={link.path}
                     className={`px-4 py-2 rounded-md ${
                       isScrolled
-                        ? "text-gray-700 hover:text-blue-600"
-                        : "text-white hover:text-blue-300"
-                    } transition-colors`}
-                  >
-                    {link.label}
-                  </Link>
-                )
-              ))}
-            </div>
-          </div>
-
+                      ? "text-gray-700 hover:text-blue-600"
+                      : "text-white hover:text-blue-500"
+                      } transition-colors`}
+                      >
+                        {link.label}
+                        </Link>
+                        )
+                        ))}
+                        </div>
+                        </div>
           {/* Botão Mobile */}
           <button
             className="md:hidden text-2xl z-50"

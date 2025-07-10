@@ -64,17 +64,6 @@ const {
     loadData();
   }, []);
 
-  // Redireciona após sucesso
-  useEffect(() => {
-    if (isSubmitSuccessful && submitStatus.success) {
-      const timer = setTimeout(() => {
-        router.push('/cursos');
-      }, 2000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [isSubmitSuccessful, submitStatus.success, router]);
-
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -130,7 +119,7 @@ const {
       } else {
         setSubmitStatus({ 
           success: false, 
-          message: response?.error || 'Erro ao criar curso',
+          message: response?.error || 'Erro ao criar curso, tente novamente!',
           shouldRedirect: false
         });
       }

@@ -1,7 +1,7 @@
 "use client";
 
 import { X, Eye, EyeOff } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export const AdminModalForm = ({
   mode = "edit",
@@ -20,93 +20,94 @@ export const AdminModalForm = ({
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [initialAdminData, setInitialAdminData] = useState({});
+  const initialAdminData = useRef(null);
+  const [hasChanges, setHasChanges] = useState(false);
 
+  // Initialize initial data only once when modal opens
   useEffect(() => {
-    if (mode === 'edit') {
-      setInitialAdminData({
+    if (mode === 'edit' && !initialAdminData.current) {
+      initialAdminData.current = {
         username: admin.username,
         email: admin.email,
         contact: admin.contact || ''
-      });
+      };
     }
   }, [mode, admin]);
 
-  const handleSubmit = async () => {
-    setError('');
+  // Check for changes in form fields
+  useEffect(() => {
+    if (mode === 'add') {
+      // For add mode, enable button when required fields are filled
+      const requiredFieldsFilled = 
+        admin.username.trim() && 
+        admin.email.trim() && 
+        (admin.password ? admin.password.trim() : false);
+      setHasChanges(requiredFieldsFilled);
+    } else if (initialAdminData.current) {
+      // For edit mode, check if any field has changed
+      const fieldsChanged = 
+        admin.username.trim() !== initialAdminData.current.username.trim() ||
+        admin.email.trim() !== initialAdminData.current.email.trim() ||
+        (admin.contact || '').trim() !== (initialAdminData.current.contact || '').trim() ||
+        admin.currentPassword.trim() ||
+        admin.newPassword.trim();
+      
+      setHasChanges(fieldsChanged);
+    }
+  }, [admin, mode]);
+
+const handleSubmit = async () => {
+  setError('');
+  
+  // Validação básica de email
+  if (admin.email && !/^\S+@\S+\.\S+$/.test(admin.email)) {
+    setError('Email inválido');
+    return;
+  }
+
+  // Validação de alteração de senha
+  if (mode === 'edit' && admin.newPassword && !admin.currentPassword) {
+    setError('Para alterar a senha, forneça a senha atual');
+    return;
+  }
+
+  setIsLoading(true);
+
+try {
+    const changedFields = {};
+    console.log(changedFields)
+
+    // Verifica cada campo modificado
+    if (admin.username.trim() !== initialAdminData.current.username.trim()) {
+      changedFields.full_name = admin.username.trim();
+    }
     
-    // Validação básica apenas do formato de email se for fornecido
-    if (admin.email && !/^\S+@\S+\.\S+$/.test(admin.email)) {
-      setError('Email inválido');
+    if (admin.email.trim() !== initialAdminData.current.email.trim()) {
+      changedFields.email = admin.email.trim();
+    }
+    
+    if ((admin.contact || '').trim() !== (initialAdminData.current.contact || '').trim()) {
+      changedFields.contact = admin.contact?.trim() || '';
+    }
+
+    // Campos de senha
+    if (admin.newPassword.trim()) {
+      changedFields.current_password = admin.currentPassword.trim();
+      changedFields.new_password = admin.newPassword.trim();
+    }
+
+    if (Object.keys(changedFields).length === 0) {
+      setError('Nenhuma alteração detectada');
       return;
     }
 
-    // Validação específica para senha apenas se for edição e nova senha for fornecida
-    if (mode === 'edit' && admin.newPassword && !admin.currentPassword) {
-      setError('Para alterar a senha, forneça a senha atual');
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      let backendData = {};
-
-      if (mode === 'add') {
-        // Modo adição - requer campos mínimos
-        if (!admin.username || !admin.email || !admin.password) {
-          throw new Error('Nome, email e senha são obrigatórios para novo cadastro');
-        }
-
-        backendData = {
-          username: admin.username,
-          email: admin.email,
-          password: admin.password,
-          ...(admin.contact && { contact: admin.contact })
-        };
-      } else {
-        // Modo edição - envia apenas o que foi alterado
-        if (admin.username !== initialAdminData.username) {
-          backendData.username = admin.username;
-        }
-        
-        if (admin.email !== initialAdminData.email) {
-          backendData.email = admin.email;
-        }
-        
-        if (admin.contact !== initialAdminData.contact) {
-          backendData.contact = admin.contact || '';
-        }
-
-        // Lógica para senhas
-        if (admin.newPassword) {
-          backendData = {
-            ...backendData,
-            password: admin.currentPassword,
-            newPassword: admin.newPassword
-          };
-        } else if (admin.currentPassword) {
-          // Caso o usuário tenha digitado apenas a senha atual sem nova senha
-          setError('Nova senha não fornecida');
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      // Só envia se houver algo para atualizar
-      if (mode === 'edit' && Object.keys(backendData).length === 0) {
-        setError('Nenhuma alteração detectada');
-        setIsLoading(false);
-        return;
-      }
-
-      await onSubmit(backendData);
-    } catch (err) {
-      setError(err.message || 'Erro ao salvar as alterações');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    await onSubmit(changedFields); // Envia apenas os campos alterados
+  } catch (err) {
+    setError(err.message || 'Erro ao salvar as alterações');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -154,7 +155,8 @@ export const AdminModalForm = ({
           <div>
             <label className="block text-sm font-medium mb-1">Contato</label>
             <input
-              type="text"
+              type="tel"
+              maxLength={9}
               value={admin.contact || ''}
               onChange={(e) => onChange({ ...admin, contact: e.target.value })}
               className="w-full p-2 border border-gray-300 rounded-md"
@@ -221,8 +223,12 @@ export const AdminModalForm = ({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={isLoading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            disabled={isLoading || !hasChanges}
+            className={`px-4 py-2 rounded-md ${
+              isLoading || !hasChanges
+                ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
           >
             {isLoading ? (
               <span className="flex items-center justify-center">

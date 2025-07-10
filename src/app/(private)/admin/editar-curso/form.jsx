@@ -66,10 +66,7 @@ export function EditCourseForm({ initialValues }) {
     });
   }, [initialValues, reset]);
     
-    if (isAuthLoading)
-      {
-        return <Loading message=" Academia Egaf..." />;
-      }
+
   // Check for form changes
   const hasChanges = () => {
     const currentValues = watch();
@@ -135,13 +132,16 @@ export function EditCourseForm({ initialValues }) {
           router.push("/cursos");
         }, 1500);
       } else {
-        toast.error(response.message || "Erro ao atualizar curso");
+        toast.error(response.message || "Erro ao atualizar curso, tente novamentesss!");
       }
     } catch (error) {
-      toast.error(error.message || "Erro ao atualizar curso");
+      toast.error(error.message || "Erro ao atualizar curso, tente novamentes");
     }
   };
-
+    if (isAuthLoading)
+      {
+        return <Loading message=" Academia Egaf..." />;
+      }
   if (isLoadingData) {
     return (
       <Loading message="Carregando os detalhes do curso..."/>
@@ -153,13 +153,7 @@ export function EditCourseForm({ initialValues }) {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 lg:space-y-8">
         <Toaster 
           position="top-center" 
-          reverseOrder={false} 
-          toastOptions={{
-            duration: 3000,
-            style: {
-              minWidth: '300px',
-            },
-          }}
+          reverseOrder={false}
         />
         
         {/* Image upload section */}

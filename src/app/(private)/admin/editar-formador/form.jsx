@@ -95,6 +95,7 @@ export function EditInstructorForm({ initialValues = {}, instructorId }) {
       }
 
       const response = await EditInstructor(instructorId, formData, token);
+      console.log(response)
 
       if (response.success) {
         toast.success("Formador atualizado com sucesso!");
@@ -107,11 +108,11 @@ export function EditInstructorForm({ initialValues = {}, instructorId }) {
           router.push("/admin/formadores");
         }, 1500);
       } else {
-        toast.error(response.message || "Erro ao atualizar formador");
+        toast.error(response.error);
       }
     } catch (error) {
       console.error("Erro no envio:", error);
-      toast.error(error.message || "Erro ao atualizar formador");
+      toast.error(error.message);
     } finally {
       setIsLoading(false);
     }

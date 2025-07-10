@@ -1,7 +1,6 @@
 import { api } from "@/api/api";
 
 async function EditMyProfile(id_student, accessToken, data) {
-    console.log(data)
     try {
         const result = await api.patch(`/users/students/profile/edit/${id_student}`,
             data,

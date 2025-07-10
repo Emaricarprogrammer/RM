@@ -195,7 +195,7 @@ const handleSave = async (e) => {
     <div className="bg-gray-50 min-h-screen flex flex-col">
       <div className="container mx-auto px-4 py-8 flex-grow">
         {/* Cabeçalho */}
-        <Toaster position="bottom-center" reverseOrder={false} className="flex flex-col text-center gap-1 w-full"/>
+        <Toaster position="top-center" reverseOrder={false} className="flex flex-col text-center gap-1 w-full"/>
       
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>

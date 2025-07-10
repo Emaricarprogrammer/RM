@@ -320,7 +320,7 @@ async function handleSubmit(e) {
                     disabled={!isFormValid() || isLoading}
                   >
                     {isLoading ? (
-                      <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+                      "Salvando..."
                     ) : (
                       "Salvar Alterações"
                     )}

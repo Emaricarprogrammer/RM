@@ -118,7 +118,7 @@ export default function AdminHomePage() {
       title: "Gerenciar Cursos",
       description: "Edite ou remova cursos existentes",
       icon: <BookText size={24} />,
-      link: "/admin/cursos",
+      link: "/cursos",
       color: "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-50",
     },
     {

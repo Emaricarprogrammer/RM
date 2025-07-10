@@ -110,7 +110,7 @@ export function Footer() {
             </p>
             <p className="flex gap-3 items-center">
               <Phone className="size-6" />
-              <span>{contactData.private_phone}</span>
+              <span>(+244) {contactData.private_phone}</span>
             </p>
           </div>
         </div>

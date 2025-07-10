@@ -17,7 +17,6 @@ export default function EditCoursePage() {
 
   useEffect(() => {
     if (!id) {
-      toast.error("ID do curso não fornecido");
       router.push("/admin/cursos");
       return;
     }
